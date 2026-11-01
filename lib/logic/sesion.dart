@@ -1,23 +1,46 @@
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 /// Sesión del usuario (Singleton): toda la app comparte la misma instancia.
 class Sesion {
   Sesion._();
   static final instance = Sesion._();
 
-  // Usuario de demostración: aún no hay un sistema real de usuarios.
-  static const _usuarioDemo = 'admin';
-  static const _contrasenaDemo = 'admin123';
+  // Definidos en config.json al compilar.
+  static const _url = String.fromEnvironment('SUPABASE_URL');
+  static const _clavePublica = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
-  String? _usuario;
+  GoTrueClient? _auth;
 
-  String? get usuario => _usuario;
+  /// Conecta con Supabase. Sin configuración nadie puede iniciar sesión.
+  Future<void> inicializar() async {
+    if (_url.isEmpty || _clavePublica.isEmpty) return;
+    await Supabase.initialize(url: _url, publishableKey: _clavePublica);
+    _auth = Supabase.instance.client.auth;
+  }
 
-  bool get iniciada => _usuario != null;
+  @visibleForTesting
+  set auth(GoTrueClient cliente) => _auth = cliente;
 
-  /// Devuelve true si las credenciales son correctas e inicia la sesión.
-  bool iniciar(String usuario, String contrasena) {
-    final nombre = usuario.trim();
-    if (nombre != _usuarioDemo || contrasena != _contrasenaDemo) return false;
-    _usuario = nombre;
-    return true;
+  String? get usuario => _auth?.currentUser?.email;
+
+  bool get iniciada => _auth?.currentSession != null;
+
+  /// Inicia la sesión. Devuelve null si todo salió bien o el mensaje de error.
+  Future<String?> iniciar(String correo, String contrasena) async {
+    final auth = _auth;
+    if (auth == null) return 'La app no está configurada';
+    try {
+      await auth.signInWithPassword(email: correo.trim(), password: contrasena);
+      return null;
+    } on AuthRetryableFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on AuthException catch (e) {
+      return switch (e.code) {
+        'invalid_credentials' => 'Correo o contraseña incorrectos',
+        'email_not_confirmed' => 'Falta confirmar el correo',
+        _ => 'No se pudo iniciar sesión',
+      };
+    }
   }
 }

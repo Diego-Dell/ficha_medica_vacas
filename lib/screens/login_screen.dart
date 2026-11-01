@@ -14,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usuario = TextEditingController();
   final _contrasena = TextEditingController();
   bool _oculta = true;
+  bool _enviando = false;
 
   @override
   void dispose() {
@@ -24,10 +25,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _requerido(String? valor) => (valor == null || valor.trim().isEmpty) ? 'Campo obligatorio' : null;
 
-  void _ingresar() {
-    if (!_form.currentState!.validate()) return;
-    final ok = Sesion.instance.iniciar(_usuario.text, _contrasena.text);
-    final mensaje = ok ? 'Bienvenido, ${Sesion.instance.usuario}' : 'Usuario o contraseña incorrectos';
+  Future<void> _ingresar() async {
+    if (_enviando || !_form.currentState!.validate()) return;
+    setState(() => _enviando = true);
+    final error = await Sesion.instance.iniciar(_usuario.text, _contrasena.text);
+    if (!mounted) return;
+    setState(() => _enviando = false);
+    final mensaje = error ?? 'Bienvenido, ${Sesion.instance.usuario}';
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(mensaje)));
@@ -55,7 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 32),
                     TextFormField(
                       controller: _usuario,
-                      decoration: const InputDecoration(labelText: 'Usuario', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(labelText: 'Correo', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
                       validator: _requerido,
@@ -78,7 +83,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       validator: _requerido,
                     ),
                     const SizedBox(height: 24),
-                    FilledButton(onPressed: _ingresar, child: const Text('Ingresar')),
+                    FilledButton(
+                      onPressed: _enviando ? null : _ingresar,
+                      child: Text(_enviando ? 'Ingresando...' : 'Ingresar'),
+                    ),
                   ],
                 ),
               ),

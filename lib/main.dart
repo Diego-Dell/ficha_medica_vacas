@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'logic/sesion.dart';
 import 'screens/login_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Sesion.instance.inicializar();
   runApp(const FichaMedicaApp());
 }
 

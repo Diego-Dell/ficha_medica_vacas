@@ -1,3 +1,6 @@
+# Local configuration
+/config.json
+
 # Miscellaneous
 *.class
 *.log
