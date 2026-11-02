@@ -15,10 +15,10 @@ class FichaMedicaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ficha médica de vacas',
+      title: 'VetLink',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF2E7D32),
+        colorSchemeSeed: const Color(0xFF2F5D46),
         useMaterial3: true,
       ),
       home: const LoginScreen(),

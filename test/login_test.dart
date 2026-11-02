@@ -53,8 +53,15 @@ Future<void> ingresar(WidgetTester tester, String contrasena) async {
   await tester.pumpWidget(const FichaMedicaApp());
   await tester.enterText(find.byType(TextFormField).at(0), ' $correo ');
   await tester.enterText(find.byType(TextFormField).at(1), contrasena);
-  await tester.tap(find.widgetWithText(FilledButton, 'Ingresar'));
+  await tocar(tester, 'Iniciar sesión');
   await tester.pumpAndSettle();
+}
+
+/// La pantalla de prueba es más baja que un celular: hay que desplazarse hasta el botón.
+Future<void> tocar(WidgetTester tester, String boton) async {
+  await tester.ensureVisible(find.text(boton));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(boton));
 }
 
 void main() {
@@ -70,9 +77,26 @@ void main() {
 
   testWidgets('pide completar los campos', (tester) async {
     await tester.pumpWidget(const FichaMedicaApp());
-    await tester.tap(find.text('Ingresar'));
+    await tocar(tester, 'Iniciar sesión');
     await tester.pump();
     expect(find.text('Campo obligatorio'), findsNWidgets(2));
+  });
+
+  testWidgets('muestra el diseño de VetLink', (tester) async {
+    await tester.pumpWidget(const FichaMedicaApp());
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('ana@ejemplo.com'), findsOneWidget);
+  });
+
+  testWidgets('avisa que recuperar la contraseña y registrarse aún no están disponibles', (tester) async {
+    await tester.pumpWidget(const FichaMedicaApp());
+    await tocar(tester, 'Olvidé mi contraseña');
+    await tester.pump();
+    expect(find.text('Recuperar la contraseña estará disponible pronto'), findsOneWidget);
+    await tocar(tester, 'Registrar mi granja');
+    await tester.pumpAndSettle();
+    expect(find.text('El registro de granjas estará disponible pronto'), findsOneWidget);
   });
 
   testWidgets('rechaza credenciales incorrectas', (tester) async {
