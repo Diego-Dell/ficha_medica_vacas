@@ -26,6 +26,9 @@ class Sesion {
 
   String? get usuario => _auth?.currentUser?.email;
 
+  /// Nombre registrado por la persona o, si no tiene, su correo.
+  String get nombre => _auth?.currentUser?.userMetadata?['nombre'] as String? ?? usuario ?? '';
+
   bool get iniciada => _auth?.currentSession != null;
 
   /// Envía el enlace de recuperación. Devuelve null si todo salió bien o el mensaje de error.

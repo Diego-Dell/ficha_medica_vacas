@@ -140,7 +140,8 @@ void main() {
     });
     await ingresar(tester, 'clave');
     expect(enviado['email'], correo);
-    expect(find.text('Bienvenido, $correo'), findsOneWidget);
+    expect(find.text('Mi granja'), findsOneWidget);
+    expect(find.text('$correo · Así va el cuidado en Los Pinos.'), findsOneWidget);
     expect(Sesion.instance.iniciada, isTrue);
   });
 }

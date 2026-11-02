@@ -9,7 +9,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/models/granja.dart';
 import 'package:ficha_medica_vacas/screens/granja_revision_screen.dart';
+import 'package:ficha_medica_vacas/screens/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/registrar_granja_screen.dart';
+import 'package:ficha_medica_vacas/widgets/vetlink.dart';
 
 const losPinos = Granja(
   nombre: 'Los Pinos',
@@ -79,6 +81,21 @@ void main() {
     expect(enviado['email'], 'ana@ejemplo.com');
     expect((enviado['data'] as Map)['superficie'], 18.5);
     expect(find.text('Recibimos el registro de Los Pinos.'), findsOneWidget);
+  });
+
+  testWidgets('Mi granja muestra los datos y las opciones', (tester) async {
+    await abrir(tester, const MiGranjaScreen());
+    expect(find.text('24'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+    for (final opcion in ['Ganado e historial', 'Reportes sanitarios', 'Dar de baja un animal']) {
+      expect(find.text('$opcion  ›'), findsOneWidget);
+    }
+    await tocar(tester, 'Ganado e historial  ›');
+    expect(find.text('Ganado e historial estará disponible pronto'), findsOneWidget);
+    await tester.tap(find.descendant(of: find.byType(BarraVetLink), matching: find.text('Avisos')));
+    await tester.pumpAndSettle();
+    expect(find.text('Avisos estará disponible pronto'), findsOneWidget);
   });
 
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {

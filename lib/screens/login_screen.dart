@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../logic/sesion.dart';
 import '../widgets/vetlink.dart';
+import 'mi_granja_screen.dart';
 import 'recuperar_screen.dart';
 import 'registrar_granja_screen.dart';
 
@@ -31,7 +32,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final error = await Sesion.instance.iniciar(_correo.text, _contrasena.text);
     if (!mounted) return;
     setState(() => _enviando = false);
-    avisar(context, error ?? 'Bienvenido, ${Sesion.instance.usuario}');
+    if (error != null) {
+      avisar(context, error);
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const MiGranjaScreen()));
   }
 
   @override

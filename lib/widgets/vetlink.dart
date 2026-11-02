@@ -92,6 +92,43 @@ class PantallaVetLink extends StatelessWidget {
   }
 }
 
+/// Barra inferior de las pantallas de una granja. Con [alVolver] la primera opción regresa en vez de ser "Inicio".
+class BarraVetLink extends StatelessWidget {
+  const BarraVetLink({super.key, this.alVolver});
+
+  final VoidCallback? alVolver;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget opcion(String texto, VoidCallback? alPresionar) => Expanded(
+          child: TextButton(
+            style: TextButton.styleFrom(foregroundColor: colorVerdeOscuro),
+            onPressed: alPresionar,
+            child: Text(texto, style: const TextStyle(fontSize: 12)),
+          ),
+        );
+    void pronto(String funcion) => avisar(context, '$funcion estará disponible pronto');
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: colorBorde)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            alVolver == null ? opcion('Inicio', null) : opcion('‹ Volver', alVolver),
+            opcion('Avisos', () => pronto('Avisos')),
+            opcion('Reportes', () => pronto('Reportes')),
+            opcion('Más', () => pronto('Más')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Logo y nombre de la app. Con [granja] también muestra la granja actual y, con [alVolver], el enlace de regreso.
 class EncabezadoVetLink extends StatelessWidget {
   const EncabezadoVetLink({super.key, this.granja, this.rol, this.alVolver});
