@@ -2,8 +2,7 @@ import '../models/animal.dart';
 import '../models/granja.dart';
 import '../models/miembro.dart';
 
-/// Datos de las granjas (Singleton). Por ahora son de ejemplo y viven en memoria:
-/// se pierden al cerrar la app hasta que existan las tablas en Supabase.
+/// 1. Guarda en memoria datos de ejemplo de las granjas (Singleton); se pierden al cerrar la app.
 class Granjas {
   Granjas._();
   static final instance = Granjas._();
@@ -33,18 +32,19 @@ class Granjas {
 
   int get totalMiembros => miembros.length + invitaciones.length;
 
-  /// Único animal de ejemplo con ficha: hace falta un listado de ganado para elegir otros.
+  /// 2. Ofrece el único animal de ejemplo con ficha para darlo de baja.
   Animal? animalParaBaja = const Animal(nombre: 'Lucera', arete: '0842', categoria: 'Vaca', raza: 'Holstein');
 
   final List<({Animal animal, DateTime fecha, String motivo})> bajas = [];
 
+  /// 3. Registra la baja y descuenta el animal.
   void darDeBaja(Animal animal, DateTime fecha, String motivo) {
     bajas.add((animal: animal, fecha: fecha, motivo: motivo));
     animales--;
     animalParaBaja = null;
   }
 
-  /// Agrega una invitación pendiente. Devuelve null si todo salió bien o el mensaje de error.
+  /// 4. Agrega una invitación pendiente; devuelve null o el mensaje de error.
   String? invitar(String correo, RolMiembro rol) {
     final limpio = correo.trim().toLowerCase();
     if (miembros.any((m) => m.correo == limpio)) return 'Esa persona ya es miembro de la granja';

@@ -30,8 +30,13 @@ class _InvitarScreenState extends State<InvitarScreen> {
   }
 
   void _enviar() {
+    // 1. Valida el formulario.
     if (!_form.currentState!.validate()) return;
+
+    // 2. Registra la invitación pendiente.
     final error = Granjas.instance.invitar(_correo.text, _rol);
+
+    // 3. Muestra el error o vuelve a Miembros.
     if (error != null) {
       avisar(context, error);
       return;

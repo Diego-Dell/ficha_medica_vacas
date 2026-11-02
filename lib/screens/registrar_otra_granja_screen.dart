@@ -31,7 +31,10 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
   }
 
   void _enviar() {
+    // 1. Valida el formulario.
     if (!_form.currentState!.validate()) return;
+
+    // 2. Guarda el registro con la cuenta actual.
     final granja = Granja(
       nombre: _nombre.text.trim(),
       dueno: Sesion.instance.nombre,
@@ -40,6 +43,8 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
       documento: _documento!,
     );
     Granjas.instance.enRevision.add(granja);
+
+    // 3. Avisa el resultado y vuelve a Mi granja.
     avisar(context, 'Recibimos el registro de ${granja.nombre}');
     Navigator.pop(context);
   }

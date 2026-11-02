@@ -11,7 +11,7 @@ import 'package:ficha_medica_vacas/main.dart';
 
 const correo = 'ana@ejemplo.com';
 
-/// Cliente de Supabase que responde sin salir a internet.
+/// 1. Crea un cliente de Supabase que responde sin salir a internet.
 GoTrueClient cliente(MockClientHandler respuesta) => GoTrueClient(
       url: 'https://prueba.supabase.co/auth/v1',
       httpClient: MockClient(respuesta),
@@ -57,7 +57,7 @@ Future<void> ingresar(WidgetTester tester, String contrasena) async {
   await tester.pumpAndSettle();
 }
 
-/// La pantalla de prueba es más baja que un celular: hay que desplazarse hasta el botón.
+/// 2. Se desplaza hasta el botón y lo toca, porque la pantalla de prueba es más baja que un celular.
 Future<void> tocar(WidgetTester tester, String boton) async {
   await tester.ensureVisible(find.text(boton));
   await tester.pumpAndSettle();
@@ -69,7 +69,7 @@ void main() {
     expect(identical(Sesion.instance, Sesion.instance), isTrue);
   });
 
-  // El Singleton conserva su estado entre pruebas: esta debe ir antes de asignar un cliente.
+  // 3. Prueba la app sin configurar antes de asignar un cliente, porque el Singleton conserva su estado.
   testWidgets('sin configuración no permite entrar', (tester) async {
     await ingresar(tester, 'clave');
     expect(find.text('La app no está configurada'), findsOneWidget);

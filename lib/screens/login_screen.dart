@@ -27,11 +27,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _ingresar() async {
+    // 1. Valida el formulario y evita envíos dobles.
     if (_enviando || !_form.currentState!.validate()) return;
     setState(() => _enviando = true);
+
+    // 2. Pide a Supabase iniciar la sesión.
     final error = await Sesion.instance.iniciar(_correo.text, _contrasena.text);
     if (!mounted) return;
     setState(() => _enviando = false);
+
+    // 3. Muestra el error o entra a Mi granja.
     if (error != null) {
       avisar(context, error);
       return;

@@ -15,9 +15,10 @@ class MiGranjaScreen extends StatefulWidget {
 }
 
 class _MiGranjaScreenState extends State<MiGranjaScreen> {
+  /// 1. Avisa que una opción todavía no está disponible.
   void _pronto(String funcion) => avisar(context, '$funcion estará disponible pronto');
 
-  /// Abre una pantalla y actualiza los datos al volver.
+  /// 2. Abre una pantalla y actualiza los datos al volver.
   Future<void> _abrir(Widget pantalla) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
     if (mounted) setState(() {});

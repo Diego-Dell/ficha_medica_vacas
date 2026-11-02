@@ -37,8 +37,11 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
   String? _contrasenaValida(String? valor) => (valor ?? '').length < 6 ? 'Mínimo 6 caracteres' : null;
 
   Future<void> _enviar() async {
+    // 1. Valida el formulario y evita envíos dobles.
     if (_enviando || !_form.currentState!.validate()) return;
     setState(() => _enviando = true);
+
+    // 2. Crea la cuenta con los datos de la granja.
     final granja = Granja(
       nombre: _granja.text.trim(),
       dueno: _dueno.text.trim(),
@@ -49,6 +52,8 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
     final error = await Sesion.instance.registrar(_correo.text, _contrasena.text, granja);
     if (!mounted) return;
     setState(() => _enviando = false);
+
+    // 3. Muestra el error o pasa a Granja en revisión.
     if (error != null) {
       avisar(context, error);
       return;

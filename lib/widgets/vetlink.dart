@@ -12,17 +12,21 @@ const colorRojo = Color(0xFFA2453D);
 
 final _forma = RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
 
+/// 1. Valida que un campo obligatorio tenga texto.
 String? requerido(String? valor) => (valor == null || valor.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+/// 2. Muestra un mensaje y reemplaza el anterior.
 void avisar(BuildContext context, String mensaje) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(mensaje)));
 }
 
+/// 3. Escribe una fecha como dd/mm/aaaa.
 String fechaCorta(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
+/// 4. Aplica el estilo del diseño a un campo de formulario.
 InputDecoration decoracionCampo({String? pista}) {
   OutlineInputBorder borde(Color color) => OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -39,7 +43,7 @@ InputDecoration decoracionCampo({String? pista}) {
   );
 }
 
-/// Base de todas las pantallas: encabezado con la marca, contenido y barra inferior opcional.
+/// 5. Arma la base de cada pantalla: encabezado, contenido y barra inferior opcional.
 class PantallaVetLink extends StatelessWidget {
   const PantallaVetLink({
     super.key,
@@ -95,7 +99,7 @@ class PantallaVetLink extends StatelessWidget {
   }
 }
 
-/// Barra inferior de las pantallas de una granja. Con [alVolver] la primera opción regresa en vez de ser "Inicio".
+/// 6. Muestra la barra inferior de una granja; con [alVolver], la primera opción regresa en vez de ser "Inicio".
 class BarraVetLink extends StatelessWidget {
   const BarraVetLink({super.key, this.alVolver});
 
@@ -132,7 +136,7 @@ class BarraVetLink extends StatelessWidget {
   }
 }
 
-/// Logo y nombre de la app. Con [granja] también muestra la granja actual y, con [alVolver], el enlace de regreso.
+/// 7. Muestra el logo y el nombre de la app; con [granja] agrega la granja actual y con [alVolver] el enlace de regreso.
 class EncabezadoVetLink extends StatelessWidget {
   const EncabezadoVetLink({super.key, this.granja, this.rol, this.alVolver});
 
@@ -184,7 +188,7 @@ class EncabezadoVetLink extends StatelessWidget {
   }
 }
 
-/// Campo de formulario con su etiqueta arriba.
+/// 8. Muestra un campo de formulario con su etiqueta arriba.
 class CampoEtiquetado extends StatelessWidget {
   const CampoEtiquetado({super.key, required this.etiqueta, required this.child});
 
@@ -207,6 +211,7 @@ class CampoEtiquetado extends StatelessWidget {
   }
 }
 
+/// 9. Muestra el botón con la acción principal de la pantalla.
 class BotonPrincipal extends StatelessWidget {
   const BotonPrincipal({super.key, required this.texto, required this.alPresionar, this.color = colorVerde});
 
@@ -231,6 +236,7 @@ class BotonPrincipal extends StatelessWidget {
   }
 }
 
+/// 10. Muestra el botón blanco de las acciones secundarias.
 class BotonSecundario extends StatelessWidget {
   const BotonSecundario({super.key, required this.texto, required this.alPresionar});
 

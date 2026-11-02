@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'vetlink.dart';
 
-/// Abre el selector de archivos y devuelve el nombre del documento elegido.
+/// 1. Abre el selector de archivos y devuelve el nombre del documento elegido.
 Future<String?> elegirDocumento() async {
   final archivos = await FilePicker.pickFiles(
     type: FileType.custom,
@@ -12,15 +12,17 @@ Future<String?> elegirDocumento() async {
   return archivos.isEmpty ? null : archivos.first.name;
 }
 
+/// 2. Valida que la superficie sea un número mayor a 0.
 String? superficieValida(String? valor) {
   final numero = double.tryParse((valor ?? '').trim().replaceAll(',', '.'));
   if (numero == null) return 'Ingresa un número';
   return numero > 0 ? null : 'Debe ser mayor a 0';
 }
 
+/// 3. Convierte la superficie a número y acepta coma decimal.
 double leerSuperficie(String valor) => double.parse(valor.trim().replaceAll(',', '.'));
 
-/// Campos comunes al registrar una granja: nombre, superficie, RUNSA y documentación.
+/// 4. Muestra los campos para registrar una granja: nombre, superficie, RUNSA y documentación.
 class CamposGranja extends StatelessWidget {
   const CamposGranja({
     super.key,
@@ -100,7 +102,7 @@ class CamposGranja extends StatelessWidget {
   }
 }
 
-/// Recuadro verde con el rol que tendrá la persona.
+/// 5. Muestra un recuadro verde con información sobre el rol.
 class AvisoRol extends StatelessWidget {
   const AvisoRol({super.key, required this.titulo, required this.texto});
 

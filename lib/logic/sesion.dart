@@ -3,18 +3,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/granja.dart';
 
-/// Sesión del usuario (Singleton): toda la app comparte la misma instancia.
+/// 1. Comparte una sola sesión en toda la app (Singleton).
 class Sesion {
   Sesion._();
   static final instance = Sesion._();
 
-  // Definidos en config.json al compilar.
+  // 2. Lee la URL y la clave pública de config.json al compilar.
   static const _url = String.fromEnvironment('SUPABASE_URL');
   static const _clavePublica = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
   GoTrueClient? _auth;
 
-  /// Conecta con Supabase. Sin configuración nadie puede iniciar sesión.
+  /// 3. Conecta con Supabase; sin configuración nadie puede iniciar sesión.
   Future<void> inicializar() async {
     if (_url.isEmpty || _clavePublica.isEmpty) return;
     await Supabase.initialize(url: _url, publishableKey: _clavePublica);
@@ -26,12 +26,12 @@ class Sesion {
 
   String? get usuario => _auth?.currentUser?.email;
 
-  /// Nombre registrado por la persona o, si no tiene, su correo.
+  /// 4. Devuelve el nombre registrado o, si no tiene, el correo.
   String get nombre => _auth?.currentUser?.userMetadata?['nombre'] as String? ?? usuario ?? '';
 
   bool get iniciada => _auth?.currentSession != null;
 
-  /// Envía el enlace de recuperación. Devuelve null si todo salió bien o el mensaje de error.
+  /// 5. Envía el enlace de recuperación; devuelve null o el mensaje de error.
   Future<String?> recuperar(String correo) async {
     final auth = _auth;
     if (auth == null) return 'La app no está configurada';
@@ -47,7 +47,7 @@ class Sesion {
     }
   }
 
-  /// Crea la cuenta del dueño con los datos de su granja. Devuelve null si todo salió bien o el mensaje de error.
+  /// 6. Crea la cuenta del dueño con los datos de su granja; devuelve null o el mensaje de error.
   Future<String?> registrar(String correo, String contrasena, Granja granja) async {
     final auth = _auth;
     if (auth == null) return 'La app no está configurada';
@@ -76,7 +76,7 @@ class Sesion {
     }
   }
 
-  /// Inicia la sesión. Devuelve null si todo salió bien o el mensaje de error.
+  /// 7. Inicia la sesión; devuelve null o el mensaje de error.
   Future<String?> iniciar(String correo, String contrasena) async {
     final auth = _auth;
     if (auth == null) return 'La app no está configurada';

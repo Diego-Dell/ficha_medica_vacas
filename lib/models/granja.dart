@@ -12,6 +12,6 @@ class Granja {
   final double superficie;
   final String runsa;
 
-  /// Nombre del archivo con la documentación del terreno.
+  /// 1. Guarda el nombre del archivo con la documentación del terreno.
   final String documento;
 }

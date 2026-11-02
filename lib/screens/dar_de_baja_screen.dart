@@ -33,10 +33,15 @@ class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
   }
 
   void _confirmar() {
+    // 1. Valida el formulario.
     if (!_form.currentState!.validate()) return;
+
+    // 2. Registra la baja con su fecha y motivo.
     final datos = Granjas.instance;
     final animal = datos.animalParaBaja!;
     datos.darDeBaja(animal, _fecha, _motivo.text.trim());
+
+    // 3. Avisa el resultado y vuelve a Mi granja.
     avisar(context, '${animal.nombre} se dio de baja. Su ficha y su historial se conservan');
     Navigator.pop(context);
   }

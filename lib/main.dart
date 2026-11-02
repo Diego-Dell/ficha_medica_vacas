@@ -5,8 +5,11 @@ import 'logic/sesion.dart';
 import 'screens/login_screen.dart';
 
 Future<void> main() async {
+  // 1. Conecta la sesión con Supabase antes de abrir la app.
   WidgetsFlutterBinding.ensureInitialized();
   await Sesion.instance.inicializar();
+
+  // 2. Abre la app en la pantalla de login.
   runApp(const FichaMedicaApp());
 }
 

@@ -22,11 +22,16 @@ class _RecuperarScreenState extends State<RecuperarScreen> {
   }
 
   Future<void> _enviar() async {
+    // 1. Valida el formulario y evita envíos dobles.
     if (_enviando || !_form.currentState!.validate()) return;
     setState(() => _enviando = true);
+
+    // 2. Pide a Supabase enviar el enlace.
     final error = await Sesion.instance.recuperar(_correo.text);
     if (!mounted) return;
     setState(() => _enviando = false);
+
+    // 3. Muestra el resultado sin revelar si el correo tiene cuenta.
     avisar(context, error ?? 'Si el correo tiene una cuenta, te enviamos el enlace');
   }
 

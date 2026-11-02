@@ -32,7 +32,7 @@ Future<void> abrir(WidgetTester tester, Widget pantalla) async {
   await tester.pumpAndSettle();
 }
 
-/// Con [atajo] toca el enlace "‹ Volver" del encabezado en vez de un botón con ese texto exacto.
+/// 1. Toca un botón; con [atajo], toca el enlace "‹ Volver" del encabezado.
 Future<void> tocar(WidgetTester tester, String boton, {bool atajo = false}) async {
   final objetivo = atajo ? find.text('‹ $boton').first : find.text(boton);
   await tester.ensureVisible(objetivo);
