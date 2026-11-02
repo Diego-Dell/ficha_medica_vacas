@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'logic/sesion.dart';
 import 'screens/login_screen.dart';
@@ -21,6 +22,9 @@ class FichaMedicaApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF2F5D46),
         useMaterial3: true,
       ),
+      locale: const Locale('es'),
+      supportedLocales: const [Locale('es')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: const LoginScreen(),
     );
   }

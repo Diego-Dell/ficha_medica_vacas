@@ -1,3 +1,4 @@
+import '../models/animal.dart';
 import '../models/granja.dart';
 import '../models/miembro.dart';
 
@@ -31,6 +32,17 @@ class Granjas {
   ];
 
   int get totalMiembros => miembros.length + invitaciones.length;
+
+  /// Único animal de ejemplo con ficha: hace falta un listado de ganado para elegir otros.
+  Animal? animalParaBaja = const Animal(nombre: 'Lucera', arete: '0842', categoria: 'Vaca', raza: 'Holstein');
+
+  final List<({Animal animal, DateTime fecha, String motivo})> bajas = [];
+
+  void darDeBaja(Animal animal, DateTime fecha, String motivo) {
+    bajas.add((animal: animal, fecha: fecha, motivo: motivo));
+    animales--;
+    animalParaBaja = null;
+  }
 
   /// Agrega una invitación pendiente. Devuelve null si todo salió bien o el mensaje de error.
   String? invitar(String correo, RolMiembro rol) {

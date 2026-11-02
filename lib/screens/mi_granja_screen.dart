@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/granjas.dart';
 import '../logic/sesion.dart';
 import '../widgets/vetlink.dart';
+import 'dar_de_baja_screen.dart';
 import 'miembros_screen.dart';
 import 'registrar_otra_granja_screen.dart';
 
@@ -69,7 +70,7 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
         _Opcion(
           titulo: 'Dar de baja un animal',
           detalle: 'Conserva la ficha y los antecedentes.',
-          alPresionar: () => _pronto('Dar de baja'),
+          alPresionar: () => _abrir(const DarDeBajaScreen()),
         ),
         BotonSecundario(texto: 'Registrar otra granja', alPresionar: () => _abrir(const RegistrarOtraGranjaScreen())),
       ],

@@ -147,6 +147,23 @@ void main() {
     expect(Granjas.instance.enRevision.single.superficie, 12);
   });
 
+  testWidgets('Dar de baja pide el motivo, descuenta el animal y no lo ofrece de nuevo', (tester) async {
+    await abrir(tester, const MiGranjaScreen());
+    await tocar(tester, 'Dar de baja un animal  ›');
+    expect(find.text('Lucera · 0842'), findsOneWidget);
+    await tocar(tester, 'Confirmar baja');
+    expect(find.text('Campo obligatorio'), findsOneWidget);
+    expect(Granjas.instance.bajas, isEmpty);
+
+    await tester.enterText(find.byType(TextFormField), 'Venta del animal');
+    await tocar(tester, 'Confirmar baja');
+    expect(Granjas.instance.bajas.single.motivo, 'Venta del animal');
+    expect(find.text('23'), findsOneWidget);
+
+    await tocar(tester, 'Dar de baja un animal  ›');
+    expect(find.text('No hay animales para dar de baja.'), findsOneWidget);
+  });
+
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {
     await abrir(
       tester,
