@@ -25,7 +25,7 @@ class Granjas {
   ];
 
   final List<Invitacion> invitaciones = [
-    Invitacion(correo: 'maria@ejemplo.com', rol: RolMiembro.trabajador, enviada: DateTime(2026, 11, 1)),
+    Invitacion(nombre: 'María López', correo: 'maria@ejemplo.com', rol: RolMiembro.trabajador, enviada: DateTime(2026, 11, 1)),
   ];
 
   int get totalMiembros => miembros.length + invitaciones.length;

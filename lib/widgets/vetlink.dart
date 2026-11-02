@@ -20,6 +20,9 @@ void avisar(BuildContext context, String mensaje) {
     ..showSnackBar(SnackBar(content: Text(mensaje)));
 }
 
+String fechaCorta(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
 InputDecoration decoracionCampo({String? pista}) {
   OutlineInputBorder borde(Color color) => OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

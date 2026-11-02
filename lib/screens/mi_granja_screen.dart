@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/granjas.dart';
 import '../logic/sesion.dart';
 import '../widgets/vetlink.dart';
+import 'miembros_screen.dart';
 
 class MiGranjaScreen extends StatefulWidget {
   const MiGranjaScreen({super.key});
@@ -13,6 +14,12 @@ class MiGranjaScreen extends StatefulWidget {
 
 class _MiGranjaScreenState extends State<MiGranjaScreen> {
   void _pronto(String funcion) => avisar(context, '$funcion estará disponible pronto');
+
+  /// Abre una pantalla y actualiza los datos al volver.
+  Future<void> _abrir(Widget pantalla) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +58,7 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
         _Opcion(
           titulo: 'Miembros del equipo',
           detalle: 'Invitar personas y comprobar su incorporación.',
-          alPresionar: () => _pronto('Miembros del equipo'),
+          alPresionar: () => _abrir(const MiembrosScreen()),
         ),
         _Opcion(
           titulo: 'Reportes sanitarios',

@@ -29,10 +29,12 @@ Future<void> abrir(WidgetTester tester, Widget pantalla) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> tocar(WidgetTester tester, String boton) async {
-  await tester.ensureVisible(find.text(boton));
+/// Con [atajo] toca el enlace "‹ Volver" del encabezado en vez de un botón con ese texto exacto.
+Future<void> tocar(WidgetTester tester, String boton, {bool atajo = false}) async {
+  final objetivo = atajo ? find.text('‹ $boton').first : find.text(boton);
+  await tester.ensureVisible(objetivo);
   await tester.pumpAndSettle();
-  await tester.tap(find.text(boton));
+  await tester.tap(objetivo);
   await tester.pumpAndSettle();
 }
 
@@ -96,6 +98,17 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(BarraVetLink), matching: find.text('Avisos')));
     await tester.pumpAndSettle();
     expect(find.text('Avisos estará disponible pronto'), findsOneWidget);
+  });
+
+  testWidgets('Miembros muestra el equipo y la invitación pendiente', (tester) async {
+    await abrir(tester, const MiGranjaScreen());
+    await tocar(tester, 'Miembros del equipo  ›');
+    expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
+    expect(find.text('Sofía Rojas · Veterinario'), findsOneWidget);
+    expect(find.text('Invitación pendiente'), findsOneWidget);
+    expect(find.textContaining('Enviada el 01/11/2026'), findsOneWidget);
+    await tocar(tester, 'Volver', atajo: true);
+    expect(find.text('Mi granja'), findsOneWidget);
   });
 
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {

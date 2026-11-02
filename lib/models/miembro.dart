@@ -16,8 +16,9 @@ class Miembro {
 }
 
 class Invitacion {
-  const Invitacion({required this.correo, required this.rol, required this.enviada});
+  const Invitacion({this.nombre, required this.correo, required this.rol, required this.enviada});
 
+  final String? nombre;
   final String correo;
   final RolMiembro rol;
   final DateTime enviada;
