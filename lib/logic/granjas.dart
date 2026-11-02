@@ -29,4 +29,13 @@ class Granjas {
   ];
 
   int get totalMiembros => miembros.length + invitaciones.length;
+
+  /// Agrega una invitación pendiente. Devuelve null si todo salió bien o el mensaje de error.
+  String? invitar(String correo, RolMiembro rol) {
+    final limpio = correo.trim().toLowerCase();
+    if (miembros.any((m) => m.correo == limpio)) return 'Esa persona ya es miembro de la granja';
+    if (invitaciones.any((i) => i.correo == limpio)) return 'Esa persona ya tiene una invitación pendiente';
+    invitaciones.add(Invitacion(correo: limpio, rol: rol, enviada: DateTime.now()));
+    return null;
+  }
 }

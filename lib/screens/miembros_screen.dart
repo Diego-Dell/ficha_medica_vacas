@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../logic/granjas.dart';
 import '../widgets/vetlink.dart';
+import 'invitar_screen.dart';
 
 class MiembrosScreen extends StatefulWidget {
   const MiembrosScreen({super.key});
@@ -67,7 +68,10 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
         const SizedBox(height: 4),
         BotonPrincipal(
           texto: 'Invitar persona',
-          alPresionar: () => avisar(context, 'Invitar persona estará disponible pronto'),
+          alPresionar: () async {
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const InvitarScreen()));
+            if (mounted) setState(() {});
+          },
         ),
         BotonSecundario(
           texto: 'Reenviar invitación',

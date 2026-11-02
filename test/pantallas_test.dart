@@ -10,6 +10,7 @@ import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/models/granja.dart';
 import 'package:ficha_medica_vacas/screens/granja_revision_screen.dart';
 import 'package:ficha_medica_vacas/screens/mi_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/miembros_screen.dart';
 import 'package:ficha_medica_vacas/screens/registrar_granja_screen.dart';
 import 'package:ficha_medica_vacas/widgets/vetlink.dart';
 
@@ -109,6 +110,24 @@ void main() {
     expect(find.textContaining('Enviada el 01/11/2026'), findsOneWidget);
     await tocar(tester, 'Volver', atajo: true);
     expect(find.text('Mi granja'), findsOneWidget);
+  });
+
+  testWidgets('Invitar valida el correo y agrega la invitación a Miembros', (tester) async {
+    await abrir(tester, const MiembrosScreen());
+    await tocar(tester, 'Invitar persona');
+    await tester.enterText(find.byType(TextFormField), 'no-es-correo');
+    await tocar(tester, 'Enviar invitación');
+    expect(find.text('Correo no válido'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField), 'Sofia@ejemplo.com');
+    await tocar(tester, 'Enviar invitación');
+    expect(find.text('Esa persona ya es miembro de la granja'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField), 'nueva@ejemplo.com');
+    await tocar(tester, 'Enviar invitación');
+    expect(find.textContaining('nueva@ejemplo.com · Veterinario'), findsOneWidget);
+    expect(find.text('Invitación pendiente'), findsNWidgets(2));
+    expect(find.text('Invitación registrada. El envío por correo aún no está disponible'), findsOneWidget);
   });
 
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {
