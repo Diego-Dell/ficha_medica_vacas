@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/granja.dart';
+
 /// Sesión del usuario (Singleton): toda la app comparte la misma instancia.
 class Sesion {
   Sesion._();
@@ -39,6 +41,35 @@ class Sesion {
       return e.code == 'over_email_send_rate_limit'
           ? 'Se enviaron demasiados correos. Intenta más tarde'
           : 'No se pudo enviar el enlace';
+    }
+  }
+
+  /// Crea la cuenta del dueño con los datos de su granja. Devuelve null si todo salió bien o el mensaje de error.
+  Future<String?> registrar(String correo, String contrasena, Granja granja) async {
+    final auth = _auth;
+    if (auth == null) return 'La app no está configurada';
+    try {
+      await auth.signUp(
+        email: correo.trim(),
+        password: contrasena,
+        data: {
+          'nombre': granja.dueno,
+          'granja': granja.nombre,
+          'superficie': granja.superficie,
+          'runsa': granja.runsa,
+          'documento': granja.documento,
+        },
+      );
+      return null;
+    } on AuthRetryableFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on AuthException catch (e) {
+      return switch (e.code) {
+        'user_already_exists' || 'email_exists' => 'Ya existe una cuenta con ese correo',
+        'weak_password' => 'La contraseña es muy débil',
+        'over_email_send_rate_limit' => 'Se enviaron demasiados correos. Intenta más tarde',
+        _ => 'No se pudo completar el registro',
+      };
     }
   }
 

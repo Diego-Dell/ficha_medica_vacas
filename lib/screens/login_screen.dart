@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/sesion.dart';
 import '../widgets/vetlink.dart';
 import 'recuperar_screen.dart';
+import 'registrar_granja_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -88,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         BotonSecundario(
           texto: 'Registrar mi granja',
-          alPresionar: () => avisar(context, 'El registro de granjas estará disponible pronto'),
+          alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistrarGranjaScreen())),
         ),
         const SizedBox(height: 4),
         Text(
