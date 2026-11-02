@@ -89,14 +89,27 @@ void main() {
     expect(find.text('ana@ejemplo.com'), findsOneWidget);
   });
 
-  testWidgets('avisa que recuperar la contraseña y registrarse aún no están disponibles', (tester) async {
+  testWidgets('recuperar acceso envía el correo y permite volver', (tester) async {
+    late Map<String, dynamic> enviado;
+    Sesion.instance.auth = cliente((pedido) async {
+      enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
+      return http.Response('{}', 200, headers: {'content-type': 'application/json'});
+    });
     await tester.pumpWidget(const FichaMedicaApp());
     await tocar(tester, 'Olvidé mi contraseña');
-    await tester.pump();
-    expect(find.text('Recuperar la contraseña estará disponible pronto'), findsOneWidget);
-    await tocar(tester, 'Registrar mi granja');
     await tester.pumpAndSettle();
-    expect(find.text('El registro de granjas estará disponible pronto'), findsOneWidget);
+    expect(find.text('Recuperar acceso'), findsOneWidget);
+    await tocar(tester, 'Enviar enlace');
+    await tester.pump();
+    expect(find.text('Campo obligatorio'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField), ' $correo ');
+    await tocar(tester, 'Enviar enlace');
+    await tester.pumpAndSettle();
+    expect(enviado['email'], correo);
+    expect(find.text('Si el correo tiene una cuenta, te enviamos el enlace'), findsOneWidget);
+    await tocar(tester, 'Volver');
+    await tester.pumpAndSettle();
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
   });
 
   testWidgets('rechaza credenciales incorrectas', (tester) async {

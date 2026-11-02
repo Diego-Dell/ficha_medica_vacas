@@ -26,6 +26,22 @@ class Sesion {
 
   bool get iniciada => _auth?.currentSession != null;
 
+  /// Envía el enlace de recuperación. Devuelve null si todo salió bien o el mensaje de error.
+  Future<String?> recuperar(String correo) async {
+    final auth = _auth;
+    if (auth == null) return 'La app no está configurada';
+    try {
+      await auth.resetPasswordForEmail(correo.trim());
+      return null;
+    } on AuthRetryableFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on AuthException catch (e) {
+      return e.code == 'over_email_send_rate_limit'
+          ? 'Se enviaron demasiados correos. Intenta más tarde'
+          : 'No se pudo enviar el enlace';
+    }
+  }
+
   /// Inicia la sesión. Devuelve null si todo salió bien o el mensaje de error.
   Future<String?> iniciar(String correo, String contrasena) async {
     final auth = _auth;
