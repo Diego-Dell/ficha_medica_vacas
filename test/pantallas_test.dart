@@ -6,12 +6,14 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/models/granja.dart';
 import 'package:ficha_medica_vacas/screens/granja_revision_screen.dart';
 import 'package:ficha_medica_vacas/screens/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/miembros_screen.dart';
 import 'package:ficha_medica_vacas/screens/registrar_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/registrar_otra_granja_screen.dart';
 import 'package:ficha_medica_vacas/widgets/vetlink.dart';
 
 const losPinos = Granja(
@@ -128,6 +130,21 @@ void main() {
     expect(find.textContaining('nueva@ejemplo.com · Veterinario'), findsOneWidget);
     expect(find.text('Invitación pendiente'), findsNWidgets(2));
     expect(find.text('Invitación registrada. El envío por correo aún no está disponible'), findsOneWidget);
+  });
+
+  testWidgets('Registrar otra granja valida y guarda el registro', (tester) async {
+    await abrir(tester, RegistrarOtraGranjaScreen(elegir: () async => 'adjunto.pdf'));
+    await tocar(tester, 'Enviar registro');
+    expect(find.text('Campo obligatorio'), findsNWidgets(3));
+
+    final campos = find.byType(TextFormField);
+    await tester.enterText(campos.at(0), 'Santa Rosa');
+    await tester.enterText(campos.at(1), '12');
+    await tester.enterText(campos.at(2), 'SC-02419');
+    await tocar(tester, 'Elegir archivo');
+    await tocar(tester, 'Enviar registro');
+    expect(Granjas.instance.enRevision.single.nombre, 'Santa Rosa');
+    expect(Granjas.instance.enRevision.single.superficie, 12);
   });
 
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {

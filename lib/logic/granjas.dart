@@ -15,6 +15,8 @@ class Granjas {
     documento: 'Documento del terreno.pdf',
   );
 
+  final List<Granja> enRevision = [];
+
   int animales = 24;
   int avisos = 3;
 

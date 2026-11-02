@@ -4,6 +4,7 @@ import '../logic/granjas.dart';
 import '../logic/sesion.dart';
 import '../widgets/vetlink.dart';
 import 'miembros_screen.dart';
+import 'registrar_otra_granja_screen.dart';
 
 class MiGranjaScreen extends StatefulWidget {
   const MiGranjaScreen({super.key});
@@ -70,7 +71,7 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
           detalle: 'Conserva la ficha y los antecedentes.',
           alPresionar: () => _pronto('Dar de baja'),
         ),
-        BotonSecundario(texto: 'Registrar otra granja', alPresionar: () => _pronto('Registrar otra granja')),
+        BotonSecundario(texto: 'Registrar otra granja', alPresionar: () => _abrir(const RegistrarOtraGranjaScreen())),
       ],
     );
   }
