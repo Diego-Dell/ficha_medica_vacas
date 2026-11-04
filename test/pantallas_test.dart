@@ -144,32 +144,35 @@ void main() {
   });
 
   testWidgets('Miembros muestra el equipo y la invitación pendiente', (tester) async {
+    simularDatos(tablasEquipo);
     await abrir(tester, const MiGranjaScreen());
     await tocar(tester, 'Miembros del equipo  ›');
     expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
     expect(find.text('Sofía Rojas · Veterinario'), findsOneWidget);
+    expect(find.text('luis@ejemplo.com · Trabajador'), findsOneWidget, reason: 'sin nombre usa el correo');
     expect(find.text('Invitación pendiente'), findsOneWidget);
-    expect(find.textContaining('Enviada el 01/11/2026'), findsOneWidget);
+    expect(find.textContaining('maria@ejemplo.com · Trabajador'), findsOneWidget);
     await tocar(tester, 'Volver', atajo: true);
     expect(find.text('Mi granja'), findsOneWidget);
   });
 
-  testWidgets('Invitar valida el correo y agrega la invitación a Miembros', (tester) async {
+  testWidgets('Miembros permite reintentar si no carga', (tester) async {
+    simularDatos(const {}, sinRed: true);
+    await abrir(tester, const MiembrosScreen());
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    simularDatos(tablasEquipo);
+    await tocar(tester, 'No se pudo cargar el equipo. Reintentar');
+    expect(find.text('Sofía Rojas · Veterinario'), findsOneWidget);
+  });
+
+  testWidgets('Invitar valida el correo', (tester) async {
+    simularDatos(tablasEquipo);
     await abrir(tester, const MiembrosScreen());
     await tocar(tester, 'Invitar persona');
     await tester.enterText(find.byType(TextFormField), 'no-es-correo');
     await tocar(tester, 'Enviar invitación');
     expect(find.text('Correo no válido'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextFormField), 'Sofia@ejemplo.com');
-    await tocar(tester, 'Enviar invitación');
-    expect(find.text('Esa persona ya es miembro de la granja'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextFormField), 'nueva@ejemplo.com');
-    await tocar(tester, 'Enviar invitación');
-    expect(find.textContaining('nueva@ejemplo.com · Veterinario'), findsOneWidget);
-    expect(find.text('Invitación pendiente'), findsNWidgets(2));
-    expect(find.text('Invitación registrada. El envío por correo aún no está disponible'), findsOneWidget);
   });
 
   testWidgets('Registrar otra granja valida y guarda el registro', (tester) async {

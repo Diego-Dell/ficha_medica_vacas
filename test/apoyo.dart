@@ -27,6 +27,26 @@ const filaLosPinos = {
   'confirmada': true,
 };
 
+const tablasEquipo = <String, Object>{
+  'vinculaciones': [
+    {
+      'rol': 'dueno',
+      'cuentas': {'nombre': 'Ana Pérez', 'identificador': 'ana@ejemplo.com'},
+    },
+    {
+      'rol': 'veterinario',
+      'cuentas': {'nombre': 'Sofía Rojas', 'identificador': 'sofia@ejemplo.com'},
+    },
+    {
+      'rol': 'trabajador',
+      'cuentas': {'nombre': null, 'identificador': 'luis@ejemplo.com'},
+    },
+  ],
+  'invitaciones': [
+    {'id': 'i1', 'correo': 'maria@ejemplo.com', 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
+  ],
+};
+
 /// 1. Prepara Supabase simulado: responde [tablas] por nombre y anota los pedidos en [pedidos].
 void simularDatos(Map<String, Object> tablas, {List<http.Request>? pedidos, bool sinRed = false}) {
   Granjas.instance.cliente = SupabaseClient(
