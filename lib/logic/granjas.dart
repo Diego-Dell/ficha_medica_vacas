@@ -115,15 +115,29 @@ class Granjas {
     }
   }
 
-  /// 9. Ofrece el único animal de ejemplo con ficha para darlo de baja.
-  Animal? animalParaBaja = const Animal(nombre: 'Lucera', arete: '0842', categoria: 'Vaca', raza: 'Holstein');
+  /// 9. Trae los animales activos de la granja actual.
+  Future<List<Animal>> animalesActivos() async {
+    final filas = await _db
+        .from('fichas_bovinas')
+        .select('id, nombre, identificacion, etapa, raza')
+        .eq('granja_id', actual.id)
+        .isFilter('fecha_baja', null)
+        .order('identificacion');
+    return filas.map(Animal.fromMap).toList();
+  }
 
-  final List<({Animal animal, DateTime fecha, String motivo})> bajas = [];
-
-  /// 10. Registra la baja del animal.
-  void darDeBaja(Animal animal, DateTime fecha, String motivo) {
-    bajas.add((animal: animal, fecha: fecha, motivo: motivo));
-    animalParaBaja = null;
+  /// 10. Registra la baja del animal; devuelve null o el mensaje de error.
+  Future<String?> darDeBaja(Animal animal, DateTime fecha, String motivo) async {
+    try {
+      await _db
+          .from('fichas_bovinas')
+          .update({'fecha_baja': fecha.toIso8601String().substring(0, 10), 'motivo_baja': motivo}).eq('id', animal.id);
+      return null;
+    } on PostgrestException {
+      return 'No se pudo registrar la baja';
+    } on Exception {
+      return 'No se pudo conectar. Revisa tu internet';
+    }
   }
 
   /// 11. Registra una invitación pendiente; devuelve null o el mensaje de error.
