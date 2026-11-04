@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/granjas.dart';
 import '../logic/sesion.dart';
 import '../widgets/vetlink.dart';
+import 'crear_cuenta_screen.dart';
 import 'granja_revision_screen.dart';
 import 'mi_granja_screen.dart';
 import 'recuperar_screen.dart';
@@ -156,6 +157,11 @@ class _LoginScreenState extends State<LoginScreen> {
         Text(
           '¿Sos veterinario o trabajador? Pedile al dueño que te invite por correo.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorTextoSuave),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: colorVerde),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CrearCuentaScreen())),
+          child: const Text('Me invitaron: crear cuenta'),
         ),
       ],
     );

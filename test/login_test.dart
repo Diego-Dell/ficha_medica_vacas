@@ -114,6 +114,49 @@ void main() {
     expect(find.text('Bienvenido a VetLink'), findsOneWidget);
   });
 
+  testWidgets('la persona invitada crea su cuenta sin datos de granja', (tester) async {
+    late Map<String, dynamic> enviado;
+    Sesion.instance.auth = cliente((pedido) async {
+      enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
+      return http.Response(
+        jsonEncode({
+          'id': '2',
+          'aud': 'authenticated',
+          'email': correo,
+          'created_at': '2026-11-04T00:00:00Z',
+          'app_metadata': <String, Object>{},
+          'user_metadata': <String, Object>{},
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    await tester.pumpWidget(const FichaMedicaApp());
+    await tocar(tester, 'Me invitaron: crear cuenta');
+    await tester.pumpAndSettle();
+    Future<void> tocarCrear() async {
+      final boton = find.widgetWithText(FilledButton, 'Crear cuenta');
+      await tester.ensureVisible(boton);
+      await tester.pumpAndSettle();
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
+    }
+
+    await tocarCrear();
+    expect(find.text('Campo obligatorio'), findsNWidgets(2));
+    expect(find.text('Mínimo 6 caracteres'), findsOneWidget);
+
+    final campos = find.byType(TextFormField);
+    await tester.enterText(campos.at(0), ' Sofía Rojas ');
+    await tester.enterText(campos.at(1), ' $correo ');
+    await tester.enterText(campos.at(2), 'secreta1');
+    await tocarCrear();
+    expect(enviado['email'], correo);
+    expect(enviado['data'], {'nombre': 'Sofía Rojas'});
+    expect(find.text('Confirma tu correo e inicia sesión para aceptar la invitación'), findsOneWidget);
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
   testWidgets('rechaza credenciales incorrectas', (tester) async {
     Sesion.instance.auth = cliente((_) async => error(400, 'invalid_credentials'));
     await ingresar(tester, 'otra');

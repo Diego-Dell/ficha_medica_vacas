@@ -52,21 +52,23 @@ class Sesion {
   }
 
   /// 6. Crea la cuenta del dueño con los datos de su granja; devuelve null o el mensaje de error.
-  Future<String?> registrar(String correo, String contrasena, Granja granja) async {
+  Future<String?> registrar(String correo, String contrasena, Granja granja) => _crearCuenta(correo, contrasena, {
+        'nombre': granja.dueno,
+        'granja': granja.nombre,
+        'superficie': granja.superficie,
+        'runsa': granja.runsa,
+        'documento': granja.documento,
+      });
+
+  /// 7. Crea la cuenta de una persona invitada, sin granja propia; devuelve null o el mensaje de error.
+  Future<String?> crearCuentaInvitada(String nombre, String correo, String contrasena) =>
+      _crearCuenta(correo, contrasena, {'nombre': nombre.trim()});
+
+  Future<String?> _crearCuenta(String correo, String contrasena, Map<String, dynamic> datos) async {
     final auth = _auth;
     if (auth == null) return 'La app no está configurada';
     try {
-      await auth.signUp(
-        email: correo.trim(),
-        password: contrasena,
-        data: {
-          'nombre': granja.dueno,
-          'granja': granja.nombre,
-          'superficie': granja.superficie,
-          'runsa': granja.runsa,
-          'documento': granja.documento,
-        },
-      );
+      await auth.signUp(email: correo.trim(), password: contrasena, data: datos);
       return null;
     } on AuthRetryableFetchException {
       return 'No se pudo conectar. Revisa tu internet';
@@ -80,7 +82,7 @@ class Sesion {
     }
   }
 
-  /// 7. Inicia la sesión; devuelve null o el mensaje de error.
+  /// 8. Inicia la sesión; devuelve null o el mensaje de error.
   Future<String?> iniciar(String correo, String contrasena) async {
     final auth = _auth;
     if (auth == null) return 'La app no está configurada';
