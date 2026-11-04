@@ -21,6 +21,7 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
   final _superficie = TextEditingController();
   final _runsa = TextEditingController();
   String? _documento;
+  bool _enviando = false;
 
   @override
   void dispose() {
@@ -30,9 +31,10 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
     super.dispose();
   }
 
-  void _enviar() {
-    // 1. Valida el formulario.
-    if (!_form.currentState!.validate()) return;
+  Future<void> _enviar() async {
+    // 1. Valida el formulario y evita envíos dobles.
+    if (_enviando || !_form.currentState!.validate()) return;
+    setState(() => _enviando = true);
 
     // 2. Guarda el registro con la cuenta actual.
     final granja = Granja(
@@ -42,10 +44,16 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
       runsa: _runsa.text.trim(),
       documento: _documento!,
     );
-    Granjas.instance.enRevision.add(granja);
+    final error = await Granjas.instance.registrarGranja(granja);
+    if (!mounted) return;
+    setState(() => _enviando = false);
 
-    // 3. Avisa el resultado y vuelve a Mi granja.
-    avisar(context, 'Recibimos el registro de ${granja.nombre}');
+    // 3. Muestra el error o avisa el resultado y vuelve a Mi granja.
+    if (error != null) {
+      avisar(context, error);
+      return;
+    }
+    avisar(context, 'Recibimos el registro de ${granja.nombre}. Queda en revisión');
     Navigator.pop(context);
   }
 
@@ -74,7 +82,7 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
           titulo: 'Serás dueño de esta nueva granja',
           texto: 'Tus roles en las otras granjas se mantienen.',
         ),
-        BotonPrincipal(texto: 'Enviar registro', alPresionar: _enviar),
+        BotonPrincipal(texto: _enviando ? 'Enviando...' : 'Enviar registro', alPresionar: _enviando ? null : _enviar),
         BotonSecundario(texto: 'Volver', alPresionar: volver),
       ],
     );

@@ -197,7 +197,22 @@ void main() {
     expect(find.text('Esa persona ya tiene una invitación pendiente'), findsOneWidget);
   });
 
+  testWidgets('Registrar otra granja avisa si falla', (tester) async {
+    simularDatos(const {}, errorAlGuardar: '42501');
+    await abrir(tester, RegistrarOtraGranjaScreen(elegir: () async => 'adjunto.pdf'));
+    final campos = find.byType(TextFormField);
+    await tester.enterText(campos.at(0), 'Santa Rosa');
+    await tester.enterText(campos.at(1), '12');
+    await tester.enterText(campos.at(2), 'SC-02419');
+    await tocar(tester, 'Elegir archivo');
+    await tocar(tester, 'Enviar registro');
+    expect(find.text('No se pudo registrar la granja'), findsOneWidget);
+    expect(find.text('Registrar otra granja'), findsOneWidget);
+  });
+
   testWidgets('Registrar otra granja valida y guarda el registro', (tester) async {
+    final pedidos = <http.Request>[];
+    simularDatos(const {}, pedidos: pedidos);
     await abrir(tester, RegistrarOtraGranjaScreen(elegir: () async => 'adjunto.pdf'));
     await tocar(tester, 'Enviar registro');
     expect(find.text('Campo obligatorio'), findsNWidgets(3));
@@ -208,8 +223,13 @@ void main() {
     await tester.enterText(campos.at(2), 'SC-02419');
     await tocar(tester, 'Elegir archivo');
     await tocar(tester, 'Enviar registro');
-    expect(Granjas.instance.enRevision.single.nombre, 'Santa Rosa');
-    expect(Granjas.instance.enRevision.single.superficie, 12);
+    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('registrar_granja'));
+    expect(jsonDecode(rpc.body), {
+      'p_nombre': 'Santa Rosa',
+      'p_hectareas': 12,
+      'p_runsa': 'SC-02419',
+      'p_documentos': 'adjunto.pdf',
+    });
   });
 
   testWidgets('Dar de baja pide el motivo, descuenta el animal y no lo ofrece de nuevo', (tester) async {

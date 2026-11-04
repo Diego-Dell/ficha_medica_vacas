@@ -98,20 +98,35 @@ class Granjas {
     return filas.map(Invitacion.fromMap).toList();
   }
 
-  final List<Granja> enRevision = [];
+  /// 8. Registra otra granja con la cuenta actual; devuelve null o el mensaje de error.
+  Future<String?> registrarGranja(Granja granja) async {
+    try {
+      await _db.rpc('registrar_granja', params: {
+        'p_nombre': granja.nombre,
+        'p_hectareas': granja.superficie,
+        'p_runsa': granja.runsa,
+        'p_documentos': granja.documento,
+      });
+      return null;
+    } on PostgrestException {
+      return 'No se pudo registrar la granja';
+    } on Exception {
+      return 'No se pudo conectar. Revisa tu internet';
+    }
+  }
 
-  /// 8. Ofrece el único animal de ejemplo con ficha para darlo de baja.
+  /// 9. Ofrece el único animal de ejemplo con ficha para darlo de baja.
   Animal? animalParaBaja = const Animal(nombre: 'Lucera', arete: '0842', categoria: 'Vaca', raza: 'Holstein');
 
   final List<({Animal animal, DateTime fecha, String motivo})> bajas = [];
 
-  /// 9. Registra la baja del animal.
+  /// 10. Registra la baja del animal.
   void darDeBaja(Animal animal, DateTime fecha, String motivo) {
     bajas.add((animal: animal, fecha: fecha, motivo: motivo));
     animalParaBaja = null;
   }
 
-  /// 10. Registra una invitación pendiente; devuelve null o el mensaje de error.
+  /// 11. Registra una invitación pendiente; devuelve null o el mensaje de error.
   Future<String?> invitar(String correo, RolMiembro rol) async {
     final limpio = correo.trim().toLowerCase();
     try {
@@ -126,14 +141,14 @@ class Granjas {
     }
   }
 
-  /// 11. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
+  /// 12. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
   Future<List<Invitacion>> misInvitaciones() async {
     final correo = (Sesion.instance.usuario ?? '').toLowerCase();
     final filas = await _db.from('invitaciones').select().eq('vigente', true).eq('aceptada', false);
     return filas.map(Invitacion.fromMap).where((i) => i.correo.toLowerCase() == correo).toList();
   }
 
-  /// 12. Acepta una invitación y vincula la cuenta a su granja.
+  /// 13. Acepta una invitación y vincula la cuenta a su granja.
   Future<void> aceptarInvitacion(Invitacion invitacion) =>
       _db.rpc('aceptar_invitacion', params: {'p_invitacion': invitacion.id});
 }
