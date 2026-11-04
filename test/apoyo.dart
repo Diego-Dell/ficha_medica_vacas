@@ -67,7 +67,7 @@ void simularDatos(
         return http.Response(jsonEncode({'code': errorAlGuardar, 'message': 'error'}), 409, request: pedido);
       }
       final nombre = pedido.url.pathSegments.last;
-      if (nombre == 'enviar-invitacion') {
+      if (nombre == 'dynamic-action') {
         return http.Response(correoFalla ? 'error' : 'ok', correoFalla ? 502 : 200, request: pedido);
       }
       if (nombre == 'invitaciones' && pedido.method == 'POST') {

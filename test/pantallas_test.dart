@@ -195,7 +195,7 @@ void main() {
     await tocar(tester, 'Enviar invitación');
     final guardado = jsonDecode((pedidos.firstWhere((p) => p.method == 'POST') as http.Request).body) as Map<String, dynamic>;
     expect(guardado, {'granja_id': 'g1', 'correo': 'nueva@ejemplo.com', 'rol': 'veterinario'});
-    final correo = pedidos.singleWhere((p) => p.url.path.endsWith('enviar-invitacion')) as http.Request;
+    final correo = pedidos.singleWhere((p) => p.url.path.endsWith('dynamic-action')) as http.Request;
     expect(jsonDecode(correo.body), {'invitacion_id': 'nueva'});
     expect(find.text('Invitación enviada a nueva@ejemplo.com'), findsOneWidget);
     expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
@@ -219,7 +219,7 @@ void main() {
     simularDatos(tablasEquipo, pedidos: pedidos);
     await abrir(tester, const MiembrosScreen());
     await tocar(tester, 'Reenviar invitación');
-    final correo = pedidos.singleWhere((p) => p.url.path.endsWith('enviar-invitacion')) as http.Request;
+    final correo = pedidos.singleWhere((p) => p.url.path.endsWith('dynamic-action')) as http.Request;
     expect(jsonDecode(correo.body), {'invitacion_id': 'i1'});
     expect(find.text('Se reenviaron 1 de 1 invitaciones'), findsOneWidget);
   });

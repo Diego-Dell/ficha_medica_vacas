@@ -167,7 +167,7 @@ class Granjas {
   /// 12. Pide a la función de Supabase enviar el correo de una invitación con Mailgun.
   Future<bool> enviarCorreo(String invitacionId) async {
     try {
-      await _db.functions.invoke('enviar-invitacion', body: {'invitacion_id': invitacionId});
+      await _db.functions.invoke('dynamic-action', body: {'invitacion_id': invitacionId});
       return true;
     } on Exception {
       return false;
