@@ -9,6 +9,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/main.dart';
 
+import 'apoyo.dart';
+
 const correo = 'ana@ejemplo.com';
 
 /// 1. Crea un cliente de Supabase que responde sin salir a internet.
@@ -138,10 +140,46 @@ void main() {
       enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
       return sesionValida();
     });
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'dueno', 'granjas': filaLosPinos},
+      ],
+    });
     await ingresar(tester, 'clave');
     expect(enviado['email'], correo);
     expect(find.text('Mi granja'), findsOneWidget);
     expect(find.text('$correo · Así va el cuidado en Los Pinos.'), findsOneWidget);
     expect(Sesion.instance.iniciada, isTrue);
+  });
+
+  testWidgets('una granja sin confirmar muestra Granja en revisión', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {
+          'rol': 'dueno',
+          'granjas': {...filaLosPinos, 'confirmada': false},
+        },
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.text('Granja en revisión'), findsOneWidget);
+  });
+
+  testWidgets('avisa si la cuenta no tiene granjas', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({'vinculaciones': const []});
+    await ingresar(tester, 'clave');
+    expect(find.text('Tu cuenta todavía no tiene una granja'), findsOneWidget);
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
+  testWidgets('avisa si no se pueden cargar las granjas', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos(const {}, sinRed: true);
+    await ingresar(tester, 'clave');
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('No se pudieron cargar tus granjas. Intenta de nuevo'), findsOneWidget);
   });
 }

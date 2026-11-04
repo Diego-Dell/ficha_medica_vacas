@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../logic/granjas.dart';
 import '../logic/sesion.dart';
+import '../models/miembro.dart';
 import '../widgets/vetlink.dart';
 import 'dar_de_baja_screen.dart';
 import 'miembros_screen.dart';
@@ -15,22 +16,32 @@ class MiGranjaScreen extends StatefulWidget {
 }
 
 class _MiGranjaScreenState extends State<MiGranjaScreen> {
+  late Future<Resumen> _resumen = Granjas.instance.resumen();
+
   /// 1. Avisa que una opción todavía no está disponible.
   void _pronto(String funcion) => avisar(context, '$funcion estará disponible pronto');
 
-  /// 2. Abre una pantalla y actualiza los datos al volver.
+  /// 2. Vuelve a pedir los datos a Supabase.
+  void _recargar() {
+    setState(() {
+      _resumen = Granjas.instance.resumen();
+    });
+  }
+
+  /// 3. Abre una pantalla y actualiza los datos al volver.
   Future<void> _abrir(Widget pantalla) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
-    if (mounted) setState(() {});
+    if (mounted) _recargar();
   }
 
   @override
   Widget build(BuildContext context) {
     final datos = Granjas.instance;
+    final esDueno = datos.rol == RolMiembro.dueno;
     return PantallaVetLink(
       encabezado: EncabezadoVetLink(
         granja: datos.actual.nombre,
-        rol: 'Dueño',
+        rol: datos.rol.etiqueta,
         alVolver: () => Navigator.pop(context),
       ),
       barraInferior: const BarraVetLink(),
@@ -38,14 +49,31 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
       subtitulo: '${Sesion.instance.nombre} · Así va el cuidado en ${datos.actual.nombre}.',
       children: [
         const SizedBox(height: 4),
-        Row(
-          children: [
-            _Dato(valor: datos.animales, etiqueta: 'Animales'),
-            const SizedBox(width: 8),
-            _Dato(valor: datos.avisos, etiqueta: 'Avisos'),
-            const SizedBox(width: 8),
-            _Dato(valor: datos.totalMiembros, etiqueta: 'Miembros'),
-          ],
+        FutureBuilder<Resumen>(
+          future: _resumen,
+          builder: (context, estado) {
+            final resumen = estado.data;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    _Dato(valor: resumen?.animales, etiqueta: 'Animales'),
+                    const SizedBox(width: 8),
+                    _Dato(valor: resumen?.avisos, etiqueta: 'Avisos'),
+                    const SizedBox(width: 8),
+                    _Dato(valor: resumen?.miembros, etiqueta: 'Miembros'),
+                  ],
+                ),
+                if (estado.hasError)
+                  TextButton(
+                    style: TextButton.styleFrom(foregroundColor: colorRojo),
+                    onPressed: _recargar,
+                    child: const Text('No se pudieron cargar los datos. Reintentar'),
+                  ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 12),
         _Opcion(
@@ -58,21 +86,23 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
           detalle: 'Datos generales de terneras, vaquillas y vacas.',
           alPresionar: () => _pronto('Registrar o editar ficha'),
         ),
-        _Opcion(
-          titulo: 'Miembros del equipo',
-          detalle: 'Invitar personas y comprobar su incorporación.',
-          alPresionar: () => _abrir(const MiembrosScreen()),
-        ),
+        if (esDueno)
+          _Opcion(
+            titulo: 'Miembros del equipo',
+            detalle: 'Invitar personas y comprobar su incorporación.',
+            alPresionar: () => _abrir(const MiembrosScreen()),
+          ),
         _Opcion(
           titulo: 'Reportes sanitarios',
           detalle: 'Historial por animal y resumen de la granja.',
           alPresionar: () => _pronto('Reportes sanitarios'),
         ),
-        _Opcion(
-          titulo: 'Dar de baja un animal',
-          detalle: 'Conserva la ficha y los antecedentes.',
-          alPresionar: () => _abrir(const DarDeBajaScreen()),
-        ),
+        if (esDueno)
+          _Opcion(
+            titulo: 'Dar de baja un animal',
+            detalle: 'Conserva la ficha y los antecedentes.',
+            alPresionar: () => _abrir(const DarDeBajaScreen()),
+          ),
         BotonSecundario(texto: 'Registrar otra granja', alPresionar: () => _abrir(const RegistrarOtraGranjaScreen())),
       ],
     );
@@ -82,7 +112,7 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
 class _Dato extends StatelessWidget {
   const _Dato({required this.valor, required this.etiqueta});
 
-  final int valor;
+  final int? valor;
   final String etiqueta;
 
   @override
@@ -99,7 +129,7 @@ class _Dato extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$valor', style: tema.headlineSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700)),
+            Text('${valor ?? '–'}', style: tema.headlineSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700)),
             Text(etiqueta, style: tema.labelSmall?.copyWith(color: colorTextoSuave)),
           ],
         ),

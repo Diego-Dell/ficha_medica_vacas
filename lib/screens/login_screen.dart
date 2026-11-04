@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../logic/granjas.dart';
 import '../logic/sesion.dart';
 import '../widgets/vetlink.dart';
+import 'granja_revision_screen.dart';
 import 'mi_granja_screen.dart';
 import 'recuperar_screen.dart';
 import 'registrar_granja_screen.dart';
@@ -34,14 +36,42 @@ class _LoginScreenState extends State<LoginScreen> {
     // 2. Pide a Supabase iniciar la sesión.
     final error = await Sesion.instance.iniciar(_correo.text, _contrasena.text);
     if (!mounted) return;
-    setState(() => _enviando = false);
 
-    // 3. Muestra el error o entra a Mi granja.
+    // 3. Muestra el error o abre la pantalla que corresponde a la cuenta.
     if (error != null) {
       avisar(context, error);
-      return;
+    } else {
+      await _entrar();
     }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const MiGranjaScreen()));
+    if (mounted) setState(() => _enviando = false);
+  }
+
+  Future<void> _entrar() async {
+    try {
+      // 1. Busca las granjas de la cuenta.
+      final vinculos = await Granjas.instance.misVinculos();
+      if (!mounted) return;
+
+      // 2. Entra a la primera granja confirmada.
+      final confirmado = vinculos.where((v) => v.granja.confirmada).firstOrNull;
+      if (confirmado != null) {
+        Granjas.instance.seleccionar(confirmado);
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const MiGranjaScreen()));
+        return;
+      }
+
+      // 3. Si ninguna está confirmada, muestra la que sigue en revisión.
+      if (vinculos.isNotEmpty) {
+        final granja = vinculos.first.granja;
+        Navigator.push(context, MaterialPageRoute(builder: (_) => GranjaRevisionScreen(granja: granja)));
+        return;
+      }
+
+      // 4. Avisa si la cuenta todavía no tiene granjas.
+      avisar(context, 'Tu cuenta todavía no tiene una granja');
+    } on Exception {
+      if (mounted) avisar(context, 'No se pudieron cargar tus granjas. Intenta de nuevo');
+    }
   }
 
   @override

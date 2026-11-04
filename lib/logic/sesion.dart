@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/granja.dart';
+import 'granjas.dart';
 
 /// 1. Comparte una sola sesión en toda la app (Singleton).
 class Sesion {
@@ -19,10 +20,13 @@ class Sesion {
     if (_url.isEmpty || _clavePublica.isEmpty) return;
     await Supabase.initialize(url: _url, publishableKey: _clavePublica);
     _auth = Supabase.instance.client.auth;
+    Granjas.instance.conectar(Supabase.instance.client);
   }
 
   @visibleForTesting
   set auth(GoTrueClient cliente) => _auth = cliente;
+
+  String? get id => _auth?.currentUser?.id;
 
   String? get usuario => _auth?.currentUser?.email;
 

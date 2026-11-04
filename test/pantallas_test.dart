@@ -8,7 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/logic/sesion.dart';
-import 'package:ficha_medica_vacas/models/granja.dart';
+import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/granja_revision_screen.dart';
 import 'package:ficha_medica_vacas/screens/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/miembros_screen.dart';
@@ -16,13 +16,7 @@ import 'package:ficha_medica_vacas/screens/registrar_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/registrar_otra_granja_screen.dart';
 import 'package:ficha_medica_vacas/widgets/vetlink.dart';
 
-const losPinos = Granja(
-  nombre: 'Los Pinos',
-  dueno: 'Ana Pérez',
-  superficie: 18,
-  runsa: 'SC-02418',
-  documento: 'Documento del terreno.pdf',
-);
+import 'apoyo.dart';
 
 Future<void> abrir(WidgetTester tester, Widget pantalla) async {
   tester.view.physicalSize = const Size(1080, 2400);
@@ -49,6 +43,28 @@ GoTrueClient cliente(MockClientHandler respuesta) => GoTrueClient(
     );
 
 void main() {
+  setUp(() {
+    entrarALosPinos();
+    simularDatos({
+      'fichas_bovinas': [
+        {'id': 'f1'},
+        {'id': 'f2'},
+      ],
+      'prevenciones': [
+        {'id': 'p1'},
+      ],
+      'vinculaciones': [
+        {'id': 'v1'},
+        {'id': 'v2'},
+        {'id': 'v3'},
+      ],
+      'invitaciones': [
+        {'id': 'i1'},
+        {'id': 'i2'},
+      ],
+    });
+  });
+
   testWidgets('Registrar mi granja valida, envía los datos y pasa a revisión', (tester) async {
     late Map<String, dynamic> enviado;
     Sesion.instance.auth = cliente((pedido) async {
@@ -88,11 +104,35 @@ void main() {
     expect(find.text('Recibimos el registro de Los Pinos.'), findsOneWidget);
   });
 
+  testWidgets('Mi granja oculta al trabajador las opciones del dueño', (tester) async {
+    entrarALosPinos(rol: RolMiembro.trabajador);
+    await abrir(tester, const MiGranjaScreen());
+    expect(find.text('Trabajador'), findsOneWidget);
+    expect(find.text('Miembros del equipo  ›'), findsNothing);
+    expect(find.text('Dar de baja un animal  ›'), findsNothing);
+    expect(find.text('Ganado e historial  ›'), findsOneWidget);
+  });
+
+  testWidgets('Mi granja permite reintentar si no carga', (tester) async {
+    simularDatos(const {}, sinRed: true);
+    await abrir(tester, const MiGranjaScreen());
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('–'), findsNWidgets(3));
+    simularDatos({
+      'fichas_bovinas': [
+        {'id': 'f1'},
+      ],
+    });
+    await tocar(tester, 'No se pudieron cargar los datos. Reintentar');
+    expect(find.text('1'), findsOneWidget);
+  });
+
   testWidgets('Mi granja muestra los datos y las opciones', (tester) async {
     await abrir(tester, const MiGranjaScreen());
-    expect(find.text('24'), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
-    expect(find.text('4'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('5'), findsOneWidget);
     for (final opcion in ['Ganado e historial', 'Reportes sanitarios', 'Dar de baja un animal']) {
       expect(find.text('$opcion  ›'), findsOneWidget);
     }
@@ -158,7 +198,6 @@ void main() {
     await tester.enterText(find.byType(TextFormField), 'Venta del animal');
     await tocar(tester, 'Confirmar baja');
     expect(Granjas.instance.bajas.single.motivo, 'Venta del animal');
-    expect(find.text('23'), findsOneWidget);
 
     await tocar(tester, 'Dar de baja un animal  ›');
     expect(find.text('No hay animales para dar de baja.'), findsOneWidget);
