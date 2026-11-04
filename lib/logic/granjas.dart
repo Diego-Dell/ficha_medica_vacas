@@ -140,29 +140,48 @@ class Granjas {
     }
   }
 
-  /// 11. Registra una invitación pendiente; devuelve null o el mensaje de error.
-  Future<String?> invitar(String correo, RolMiembro rol) async {
+  /// 11. Guarda la invitación y envía el correo; devuelve el error o si el correo salió.
+  Future<({String? error, bool correoEnviado})> invitar(String correo, RolMiembro rol) async {
     final limpio = correo.trim().toLowerCase();
     try {
       final equipo = await miembros();
-      if (equipo.any((m) => m.correo.toLowerCase() == limpio)) return 'Esa persona ya es miembro de la granja';
-      await _db.from('invitaciones').insert({'granja_id': actual.id, 'correo': limpio, 'rol': rol.name});
-      return null;
+      if (equipo.any((m) => m.correo.toLowerCase() == limpio)) {
+        return (error: 'Esa persona ya es miembro de la granja', correoEnviado: false);
+      }
+      final fila = await _db
+          .from('invitaciones')
+          .insert({'granja_id': actual.id, 'correo': limpio, 'rol': rol.name})
+          .select('id')
+          .single();
+      return (error: null, correoEnviado: await enviarCorreo(fila['id'] as String));
     } on PostgrestException catch (e) {
-      return e.code == '23505' ? 'Esa persona ya tiene una invitación pendiente' : 'No se pudo registrar la invitación';
+      final mensaje = e.code == '23505'
+          ? 'Esa persona ya tiene una invitación pendiente'
+          : 'No se pudo registrar la invitación';
+      return (error: mensaje, correoEnviado: false);
     } on Exception {
-      return 'No se pudo conectar. Revisa tu internet';
+      return (error: 'No se pudo conectar. Revisa tu internet', correoEnviado: false);
     }
   }
 
-  /// 12. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
+  /// 12. Pide a la función de Supabase enviar el correo de una invitación con Mailgun.
+  Future<bool> enviarCorreo(String invitacionId) async {
+    try {
+      await _db.functions.invoke('enviar-invitacion', body: {'invitacion_id': invitacionId});
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  /// 13. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
   Future<List<Invitacion>> misInvitaciones() async {
     final correo = (Sesion.instance.usuario ?? '').toLowerCase();
     final filas = await _db.from('invitaciones').select().eq('vigente', true).eq('aceptada', false);
     return filas.map(Invitacion.fromMap).where((i) => i.correo.toLowerCase() == correo).toList();
   }
 
-  /// 13. Acepta una invitación y vincula la cuenta a su granja.
+  /// 14. Acepta una invitación y vincula la cuenta a su granja.
   Future<void> aceptarInvitacion(Invitacion invitacion) =>
       _db.rpc('aceptar_invitacion', params: {'p_invitacion': invitacion.id});
 }

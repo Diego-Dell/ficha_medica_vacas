@@ -35,17 +35,23 @@ class _InvitarScreenState extends State<InvitarScreen> {
     if (_enviando || !_form.currentState!.validate()) return;
     setState(() => _enviando = true);
 
-    // 2. Registra la invitación pendiente.
-    final error = await Granjas.instance.invitar(_correo.text, _rol);
+    // 2. Guarda la invitación y envía el correo.
+    final resultado = await Granjas.instance.invitar(_correo.text, _rol);
     if (!mounted) return;
     setState(() => _enviando = false);
 
-    // 3. Muestra el error o vuelve a Miembros.
+    // 3. Muestra el error o avisa el resultado y vuelve a Miembros.
+    final error = resultado.error;
     if (error != null) {
       avisar(context, error);
       return;
     }
-    avisar(context, 'Invitación registrada. El envío por correo aún no está disponible');
+    avisar(
+      context,
+      resultado.correoEnviado
+          ? 'Invitación enviada a ${_correo.text.trim().toLowerCase()}'
+          : 'La invitación quedó guardada, pero no se pudo enviar el correo. Reenvíala desde Miembros',
+    );
     Navigator.pop(context);
   }
 
@@ -92,7 +98,7 @@ class _InvitarScreenState extends State<InvitarScreen> {
         ),
         const AvisoRol(
           titulo: 'Una invitación por correo',
-          texto: 'Recibirá un enlace. Si ya tiene cuenta, podrá aceptarla con esa misma cuenta. No se envían códigos.',
+          texto: 'Recibirá un correo con los pasos. Si ya tiene cuenta, podrá aceptarla con esa misma cuenta. No se envían códigos.',
         ),
         BotonPrincipal(texto: _enviando ? 'Enviando...' : 'Enviar invitación', alPresionar: _enviando ? null : _enviar),
         BotonSecundario(texto: 'Volver', alPresionar: volver),

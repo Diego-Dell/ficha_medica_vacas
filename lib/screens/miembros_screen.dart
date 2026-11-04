@@ -16,6 +16,7 @@ class MiembrosScreen extends StatefulWidget {
 
 class _MiembrosScreenState extends State<MiembrosScreen> {
   late Future<_Equipo> _equipo = _cargar();
+  bool _reenviando = false;
 
   /// 1. Pide a Supabase los miembros y las invitaciones pendientes.
   Future<_Equipo> _cargar() async {
@@ -29,6 +30,33 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     setState(() {
       _equipo = _cargar();
     });
+  }
+
+  /// 3. Reenvía el correo de todas las invitaciones pendientes.
+  Future<void> _reenviar() async {
+    setState(() => _reenviando = true);
+    final List<Invitacion> pendientes;
+    try {
+      pendientes = (await _equipo).invitaciones;
+    } on Object {
+      if (mounted) {
+        setState(() => _reenviando = false);
+        avisar(context, 'No se pudo cargar el equipo. Intenta de nuevo');
+      }
+      return;
+    }
+    final resultados = await Future.wait(pendientes.map((i) => Granjas.instance.enviarCorreo(i.id)));
+    if (!mounted) return;
+    setState(() => _reenviando = false);
+    final enviados = resultados.where((enviado) => enviado).length;
+    avisar(
+      context,
+      pendientes.isEmpty
+          ? 'No hay invitaciones pendientes'
+          : enviados == pendientes.length
+              ? 'Se reenviaron $enviados de $enviados invitaciones'
+              : 'Solo se reenviaron $enviados de ${pendientes.length} invitaciones',
+    );
   }
 
   @override
@@ -117,8 +145,8 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
           },
         ),
         BotonSecundario(
-          texto: 'Reenviar invitación',
-          alPresionar: () => avisar(context, 'Reenviar invitaciones estará disponible pronto'),
+          texto: _reenviando ? 'Reenviando...' : 'Reenviar invitación',
+          alPresionar: _reenviando ? null : _reenviar,
         ),
         const SizedBox(height: 4),
         Text(

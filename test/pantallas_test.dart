@@ -34,6 +34,16 @@ Future<void> tocar(WidgetTester tester, String boton, {bool atajo = false}) asyn
   await tester.pumpAndSettle();
   await tester.tap(objetivo);
   await tester.pumpAndSettle();
+
+  // 2. Da tiempo real al cliente de funciones, que prepara el envío en otro hilo.
+  if (boton == 'Enviar invitación' || boton == 'Reenviar invitación') {
+    for (var intento = 0; intento < 50; intento++) {
+      if (find.text('Enviando...').evaluate().isEmpty && find.text('Reenviando...').evaluate().isEmpty) break;
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+  }
 }
 
 GoTrueClient cliente(MockClientHandler respuesta) => GoTrueClient(
@@ -168,7 +178,7 @@ void main() {
   });
 
   testWidgets('Invitar valida el correo y guarda la invitación en Supabase', (tester) async {
-    final pedidos = <http.Request>[];
+    final pedidos = <http.BaseRequest>[];
     simularDatos(tablasEquipo, pedidos: pedidos);
     await abrir(tester, const MiembrosScreen());
     await tocar(tester, 'Invitar persona');
@@ -183,10 +193,48 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField), ' Nueva@ejemplo.com ');
     await tocar(tester, 'Enviar invitación');
-    final guardado = jsonDecode(pedidos.singleWhere((p) => p.method == 'POST').body) as Map<String, dynamic>;
+    final guardado = jsonDecode((pedidos.firstWhere((p) => p.method == 'POST') as http.Request).body) as Map<String, dynamic>;
     expect(guardado, {'granja_id': 'g1', 'correo': 'nueva@ejemplo.com', 'rol': 'veterinario'});
-    expect(find.text('Invitación registrada. El envío por correo aún no está disponible'), findsOneWidget);
+    final correo = pedidos.singleWhere((p) => p.url.path.endsWith('enviar-invitacion')) as http.Request;
+    expect(jsonDecode(correo.body), {'invitacion_id': 'nueva'});
+    expect(find.text('Invitación enviada a nueva@ejemplo.com'), findsOneWidget);
     expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
+  });
+
+  testWidgets('Invitar conserva la invitación si el correo falla', (tester) async {
+    simularDatos(tablasEquipo, correoFalla: true);
+    await abrir(tester, const MiembrosScreen());
+    await tocar(tester, 'Invitar persona');
+    await tester.enterText(find.byType(TextFormField), 'nueva@ejemplo.com');
+    await tocar(tester, 'Enviar invitación');
+    expect(
+      find.text('La invitación quedó guardada, pero no se pudo enviar el correo. Reenvíala desde Miembros'),
+      findsOneWidget,
+    );
+    expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
+  });
+
+  testWidgets('Reenviar envía el correo de las invitaciones pendientes', (tester) async {
+    final pedidos = <http.BaseRequest>[];
+    simularDatos(tablasEquipo, pedidos: pedidos);
+    await abrir(tester, const MiembrosScreen());
+    await tocar(tester, 'Reenviar invitación');
+    final correo = pedidos.singleWhere((p) => p.url.path.endsWith('enviar-invitacion')) as http.Request;
+    expect(jsonDecode(correo.body), {'invitacion_id': 'i1'});
+    expect(find.text('Se reenviaron 1 de 1 invitaciones'), findsOneWidget);
+  });
+
+  testWidgets('Reenviar avisa si el correo falla o no hay pendientes', (tester) async {
+    simularDatos(tablasEquipo, correoFalla: true);
+    await abrir(tester, const MiembrosScreen());
+    await tocar(tester, 'Reenviar invitación');
+    expect(find.text('Solo se reenviaron 0 de 1 invitaciones'), findsOneWidget);
+
+    simularDatos({'vinculaciones': tablasEquipo['vinculaciones']!});
+    await abrir(tester, const SizedBox());
+    await abrir(tester, const MiembrosScreen());
+    await tocar(tester, 'Reenviar invitación');
+    expect(find.text('No hay invitaciones pendientes'), findsOneWidget);
   });
 
   testWidgets('Invitar avisa si la invitación ya existe', (tester) async {
@@ -211,7 +259,7 @@ void main() {
   });
 
   testWidgets('Registrar otra granja valida y guarda el registro', (tester) async {
-    final pedidos = <http.Request>[];
+    final pedidos = <http.BaseRequest>[];
     simularDatos(const {}, pedidos: pedidos);
     await abrir(tester, RegistrarOtraGranjaScreen(elegir: () async => 'adjunto.pdf'));
     await tocar(tester, 'Enviar registro');
@@ -223,7 +271,7 @@ void main() {
     await tester.enterText(campos.at(2), 'SC-02419');
     await tocar(tester, 'Elegir archivo');
     await tocar(tester, 'Enviar registro');
-    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('registrar_granja'));
+    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('registrar_granja')) as http.Request;
     expect(jsonDecode(rpc.body), {
       'p_nombre': 'Santa Rosa',
       'p_hectareas': 12,
@@ -236,7 +284,7 @@ void main() {
   const rosa = {'id': 'f2', 'nombre': null, 'identificacion': '0900', 'etapa': 'vaquilla', 'raza': null};
 
   testWidgets('Dar de baja pide el motivo y guarda la baja en Supabase', (tester) async {
-    final pedidos = <http.Request>[];
+    final pedidos = <http.BaseRequest>[];
     simularDatos({
       'fichas_bovinas': const [lucera],
     }, pedidos: pedidos);
@@ -250,7 +298,7 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField), 'Venta del animal');
     await tocar(tester, 'Confirmar baja');
-    final baja = pedidos.singleWhere((p) => p.method == 'PATCH');
+    final baja = pedidos.singleWhere((p) => p.method == 'PATCH') as http.Request;
     expect(baja.url.queryParameters['id'], 'eq.f1');
     final datos = jsonDecode(baja.body) as Map<String, dynamic>;
     expect(datos['motivo_baja'], 'Venta del animal');
@@ -260,7 +308,7 @@ void main() {
   });
 
   testWidgets('Dar de baja permite elegir entre varios animales', (tester) async {
-    final pedidos = <http.Request>[];
+    final pedidos = <http.BaseRequest>[];
     simularDatos({
       'fichas_bovinas': const [lucera, rosa],
     }, pedidos: pedidos);

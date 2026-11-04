@@ -154,7 +154,7 @@ void main() {
 
   testWidgets('pregunta por la invitación y la acepta', (tester) async {
     Sesion.instance.auth = cliente((_) async => sesionValida());
-    final pedidos = <http.Request>[];
+    final pedidos = <http.BaseRequest>[];
     simularDatos({
       'invitaciones': [
         {'id': 'i1', 'correo': correo.toUpperCase(), 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
@@ -168,7 +168,7 @@ void main() {
     expect(find.text('Te invitaron a una granja como Trabajador. ¿Quieres unirte?'), findsOneWidget);
     await tester.tap(find.text('Aceptar'));
     await tester.pumpAndSettle();
-    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('aceptar_invitacion'));
+    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('aceptar_invitacion')) as http.Request;
     expect(jsonDecode(rpc.body), {'p_invitacion': 'i1'});
     expect(find.text('Mi granja'), findsOneWidget);
     expect(find.text('Miembros del equipo  ›'), findsNothing);
@@ -176,7 +176,7 @@ void main() {
 
   testWidgets('la invitación se puede dejar para después', (tester) async {
     Sesion.instance.auth = cliente((_) async => sesionValida());
-    final pedidos = <http.Request>[];
+    final pedidos = <http.BaseRequest>[];
     simularDatos({
       'invitaciones': [
         {'id': 'i1', 'correo': correo, 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
