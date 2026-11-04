@@ -152,6 +152,43 @@ void main() {
     expect(Sesion.instance.iniciada, isTrue);
   });
 
+  testWidgets('pregunta por la invitación y la acepta', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    final pedidos = <http.Request>[];
+    simularDatos({
+      'invitaciones': [
+        {'id': 'i1', 'correo': correo.toUpperCase(), 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
+        {'id': 'i2', 'correo': 'otra@ejemplo.com', 'rol': 'veterinario', 'enviada_en': '2026-11-01T12:00:00Z'},
+      ],
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    }, pedidos: pedidos);
+    await ingresar(tester, 'clave');
+    expect(find.text('Te invitaron a una granja como Trabajador. ¿Quieres unirte?'), findsOneWidget);
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
+    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('aceptar_invitacion'));
+    expect(jsonDecode(rpc.body), {'p_invitacion': 'i1'});
+    expect(find.text('Mi granja'), findsOneWidget);
+    expect(find.text('Miembros del equipo  ›'), findsNothing);
+  });
+
+  testWidgets('la invitación se puede dejar para después', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    final pedidos = <http.Request>[];
+    simularDatos({
+      'invitaciones': [
+        {'id': 'i1', 'correo': correo, 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
+      ],
+    }, pedidos: pedidos);
+    await ingresar(tester, 'clave');
+    await tester.tap(find.text('Ahora no'));
+    await tester.pumpAndSettle();
+    expect(pedidos.where((p) => p.url.path.endsWith('aceptar_invitacion')), isEmpty);
+    expect(find.text('Tu cuenta todavía no tiene una granja'), findsOneWidget);
+  });
+
   testWidgets('una granja sin confirmar muestra Granja en revisión', (tester) async {
     Sesion.instance.auth = cliente((_) async => sesionValida());
     simularDatos({

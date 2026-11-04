@@ -10,6 +10,7 @@ import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/granja_revision_screen.dart';
+import 'package:ficha_medica_vacas/screens/invitar_screen.dart';
 import 'package:ficha_medica_vacas/screens/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/miembros_screen.dart';
 import 'package:ficha_medica_vacas/screens/registrar_granja_screen.dart';
@@ -166,13 +167,34 @@ void main() {
     expect(find.text('Sofía Rojas · Veterinario'), findsOneWidget);
   });
 
-  testWidgets('Invitar valida el correo', (tester) async {
-    simularDatos(tablasEquipo);
+  testWidgets('Invitar valida el correo y guarda la invitación en Supabase', (tester) async {
+    final pedidos = <http.Request>[];
+    simularDatos(tablasEquipo, pedidos: pedidos);
     await abrir(tester, const MiembrosScreen());
     await tocar(tester, 'Invitar persona');
     await tester.enterText(find.byType(TextFormField), 'no-es-correo');
     await tocar(tester, 'Enviar invitación');
     expect(find.text('Correo no válido'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField), 'Sofia@ejemplo.com');
+    await tocar(tester, 'Enviar invitación');
+    expect(find.text('Esa persona ya es miembro de la granja'), findsOneWidget);
+    expect(pedidos.where((p) => p.method == 'POST'), isEmpty);
+
+    await tester.enterText(find.byType(TextFormField), ' Nueva@ejemplo.com ');
+    await tocar(tester, 'Enviar invitación');
+    final guardado = jsonDecode(pedidos.singleWhere((p) => p.method == 'POST').body) as Map<String, dynamic>;
+    expect(guardado, {'granja_id': 'g1', 'correo': 'nueva@ejemplo.com', 'rol': 'veterinario'});
+    expect(find.text('Invitación registrada. El envío por correo aún no está disponible'), findsOneWidget);
+    expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
+  });
+
+  testWidgets('Invitar avisa si la invitación ya existe', (tester) async {
+    simularDatos(tablasEquipo, errorAlGuardar: '23505');
+    await abrir(tester, const InvitarScreen());
+    await tester.enterText(find.byType(TextFormField), 'maria@ejemplo.com');
+    await tocar(tester, 'Enviar invitación');
+    expect(find.text('Esa persona ya tiene una invitación pendiente'), findsOneWidget);
   });
 
   testWidgets('Registrar otra granja valida y guarda el registro', (tester) async {

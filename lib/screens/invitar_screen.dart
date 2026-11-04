@@ -16,6 +16,7 @@ class _InvitarScreenState extends State<InvitarScreen> {
   final _form = GlobalKey<FormState>();
   final _correo = TextEditingController();
   RolMiembro _rol = RolMiembro.veterinario;
+  bool _enviando = false;
 
   @override
   void dispose() {
@@ -29,12 +30,15 @@ class _InvitarScreenState extends State<InvitarScreen> {
     return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(correo) ? null : 'Correo no válido';
   }
 
-  void _enviar() {
-    // 1. Valida el formulario.
-    if (!_form.currentState!.validate()) return;
+  Future<void> _enviar() async {
+    // 1. Valida el formulario y evita envíos dobles.
+    if (_enviando || !_form.currentState!.validate()) return;
+    setState(() => _enviando = true);
 
     // 2. Registra la invitación pendiente.
-    final error = Granjas.instance.invitar(_correo.text, _rol);
+    final error = await Granjas.instance.invitar(_correo.text, _rol);
+    if (!mounted) return;
+    setState(() => _enviando = false);
 
     // 3. Muestra el error o vuelve a Miembros.
     if (error != null) {
@@ -90,7 +94,7 @@ class _InvitarScreenState extends State<InvitarScreen> {
           titulo: 'Una invitación por correo',
           texto: 'Recibirá un enlace. Si ya tiene cuenta, podrá aceptarla con esa misma cuenta. No se envían códigos.',
         ),
-        BotonPrincipal(texto: 'Enviar invitación', alPresionar: _enviar),
+        BotonPrincipal(texto: _enviando ? 'Enviando...' : 'Enviar invitación', alPresionar: _enviando ? null : _enviar),
         BotonSecundario(texto: 'Volver', alPresionar: volver),
       ],
     );

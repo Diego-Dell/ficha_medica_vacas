@@ -111,6 +111,29 @@ class Granjas {
     animalParaBaja = null;
   }
 
-  /// 10. Valida el correo de la invitación; devuelve null o el mensaje de error.
-  String? invitar(String correo, RolMiembro rol) => null;
+  /// 10. Registra una invitación pendiente; devuelve null o el mensaje de error.
+  Future<String?> invitar(String correo, RolMiembro rol) async {
+    final limpio = correo.trim().toLowerCase();
+    try {
+      final equipo = await miembros();
+      if (equipo.any((m) => m.correo.toLowerCase() == limpio)) return 'Esa persona ya es miembro de la granja';
+      await _db.from('invitaciones').insert({'granja_id': actual.id, 'correo': limpio, 'rol': rol.name});
+      return null;
+    } on PostgrestException catch (e) {
+      return e.code == '23505' ? 'Esa persona ya tiene una invitación pendiente' : 'No se pudo registrar la invitación';
+    } on Exception {
+      return 'No se pudo conectar. Revisa tu internet';
+    }
+  }
+
+  /// 11. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
+  Future<List<Invitacion>> misInvitaciones() async {
+    final correo = (Sesion.instance.usuario ?? '').toLowerCase();
+    final filas = await _db.from('invitaciones').select().eq('vigente', true).eq('aceptada', false);
+    return filas.map(Invitacion.fromMap).where((i) => i.correo.toLowerCase() == correo).toList();
+  }
+
+  /// 12. Acepta una invitación y vincula la cuenta a su granja.
+  Future<void> aceptarInvitacion(Invitacion invitacion) =>
+      _db.rpc('aceptar_invitacion', params: {'p_invitacion': invitacion.id});
 }

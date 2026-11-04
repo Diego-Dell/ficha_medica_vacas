@@ -48,11 +48,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _entrar() async {
     try {
-      // 1. Busca las granjas de la cuenta.
+      // 1. Pregunta por las invitaciones pendientes de la cuenta.
+      await _atenderInvitaciones();
+
+      // 2. Busca las granjas de la cuenta.
       final vinculos = await Granjas.instance.misVinculos();
       if (!mounted) return;
 
-      // 2. Entra a la primera granja confirmada.
+      // 3. Entra a la primera granja confirmada.
       final confirmado = vinculos.where((v) => v.granja.confirmada).firstOrNull;
       if (confirmado != null) {
         Granjas.instance.seleccionar(confirmado);
@@ -60,17 +63,35 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // 3. Si ninguna está confirmada, muestra la que sigue en revisión.
+      // 4. Si ninguna está confirmada, muestra la que sigue en revisión.
       if (vinculos.isNotEmpty) {
         final granja = vinculos.first.granja;
         Navigator.push(context, MaterialPageRoute(builder: (_) => GranjaRevisionScreen(granja: granja)));
         return;
       }
 
-      // 4. Avisa si la cuenta todavía no tiene granjas.
+      // 5. Avisa si la cuenta todavía no tiene granjas.
       avisar(context, 'Tu cuenta todavía no tiene una granja');
     } on Exception {
       if (mounted) avisar(context, 'No se pudieron cargar tus granjas. Intenta de nuevo');
+    }
+  }
+
+  Future<void> _atenderInvitaciones() async {
+    for (final invitacion in await Granjas.instance.misInvitaciones()) {
+      if (!mounted) return;
+      final acepta = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Tienes una invitación'),
+          content: Text('Te invitaron a una granja como ${invitacion.rol.etiqueta}. ¿Quieres unirte?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Ahora no')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Aceptar')),
+          ],
+        ),
+      );
+      if (acepta ?? false) await Granjas.instance.aceptarInvitacion(invitacion);
     }
   }
 

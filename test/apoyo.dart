@@ -48,7 +48,7 @@ const tablasEquipo = <String, Object>{
 };
 
 /// 1. Prepara Supabase simulado: responde [tablas] por nombre y anota los pedidos en [pedidos].
-void simularDatos(Map<String, Object> tablas, {List<http.Request>? pedidos, bool sinRed = false}) {
+void simularDatos(Map<String, Object> tablas, {List<http.Request>? pedidos, bool sinRed = false, String? errorAlGuardar}) {
   Granjas.instance.cliente = SupabaseClient(
     'https://prueba.supabase.co',
     'clave',
@@ -57,6 +57,9 @@ void simularDatos(Map<String, Object> tablas, {List<http.Request>? pedidos, bool
     httpClient: MockClient((pedido) async {
       if (sinRed) throw http.ClientException('sin red');
       pedidos?.add(pedido);
+      if (errorAlGuardar != null && pedido.method != 'GET') {
+        return http.Response(jsonEncode({'code': errorAlGuardar, 'message': 'error'}), 409, request: pedido);
+      }
       final nombre = pedido.url.pathSegments.last;
       return http.Response.bytes(
         utf8.encode(jsonEncode(tablas[nombre] ?? const [])),
