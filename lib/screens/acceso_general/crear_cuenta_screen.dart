@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../logic/sesion.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/sesion.dart';
+import '../../widgets/vetlink.dart';
 
 class CrearCuentaScreen extends StatefulWidget {
   const CrearCuentaScreen({super.key});

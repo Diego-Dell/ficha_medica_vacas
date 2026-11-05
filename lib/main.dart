@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'logic/sesion.dart';
-import 'screens/login_screen.dart';
+import 'screens/acceso_general/login_screen.dart';
 
 Future<void> main() async {
   // 1. Conecta la sesión con Supabase antes de abrir la app.

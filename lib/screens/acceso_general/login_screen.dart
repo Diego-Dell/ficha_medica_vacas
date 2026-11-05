@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../logic/granjas.dart';
-import '../logic/sesion.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/granjas.dart';
+import '../../logic/sesion.dart';
+import '../../widgets/vetlink.dart';
+import '../../widgets/pantalla.dart';
 import 'crear_cuenta_screen.dart';
-import 'granja_revision_screen.dart';
-import 'mi_granja_screen.dart';
+import '../dueno_granja/granja_revision_screen.dart';
+import '../dueno_granja/mi_granja_screen.dart';
 import 'recuperar_screen.dart';
-import 'registrar_granja_screen.dart';
+import '../dueno_granja/registrar_granja_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -98,8 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PantallaVetLink(
+    return Pantalla(
       titulo: 'Bienvenido a VetLink',
+      volver: false,
       subtitulo: 'El cuidado de tu ganado, en un mismo lugar.',
       children: [
         ClipRRect(
@@ -113,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
         Form(
           key: _form,
           child: Column(
@@ -123,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 etiqueta: 'Correo electrónico',
                 child: TextFormField(
                   controller: _correo,
-                  decoration: decoracionCampo(pista: 'ana@ejemplo.com'),
+                  decoration: decoracionCampo(),
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
@@ -144,7 +146,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
-        BotonPrincipal(texto: _enviando ? 'Ingresando...' : 'Iniciar sesión', alPresionar: _enviando ? null : _ingresar),
+        BotonPrincipal(
+          texto: _enviando ? 'Ingresando...' : 'Iniciar sesión',
+          alPresionar: _enviando ? null : _ingresar,
+        ),
         BotonSecundario(
           texto: 'Olvidé mi contraseña',
           alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecuperarScreen())),

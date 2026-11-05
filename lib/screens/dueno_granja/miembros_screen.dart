@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../logic/granjas.dart';
-import '../models/miembro.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/granjas.dart';
+import '../../models/miembro.dart';
+import '../../widgets/vetlink.dart';
 import 'invitar_screen.dart';
 
 typedef _Equipo = ({List<Miembro> miembros, List<Invitacion> invitaciones});

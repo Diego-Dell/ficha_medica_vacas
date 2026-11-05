@@ -8,13 +8,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
-import 'package:ficha_medica_vacas/screens/dar_de_baja_screen.dart';
-import 'package:ficha_medica_vacas/screens/granja_revision_screen.dart';
-import 'package:ficha_medica_vacas/screens/invitar_screen.dart';
-import 'package:ficha_medica_vacas/screens/mi_granja_screen.dart';
-import 'package:ficha_medica_vacas/screens/miembros_screen.dart';
-import 'package:ficha_medica_vacas/screens/registrar_granja_screen.dart';
-import 'package:ficha_medica_vacas/screens/registrar_otra_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/dar_de_baja_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/granja_revision_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/invitar_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/miembros_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/registrar_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/registrar_otra_granja_screen.dart';
 import 'package:ficha_medica_vacas/widgets/vetlink.dart';
 
 import 'apoyo.dart';
