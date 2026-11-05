@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../logic/granjas.dart';
-import '../models/animal.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/granjas.dart';
+import '../../models/animal.dart';
+import '../../widgets/vetlink.dart';
 
 class DarDeBajaScreen extends StatefulWidget {
   const DarDeBajaScreen({super.key});

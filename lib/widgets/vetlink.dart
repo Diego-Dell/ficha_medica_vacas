@@ -152,12 +152,7 @@ class EncabezadoVetLink extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(color: colorVerde, borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.eco_outlined, color: Colors.white, size: 20),
-            ),
+            Image.asset('assets/images/logo.png', width: 30, height: 30),
             const SizedBox(width: 8),
             Expanded(
               child: Column(

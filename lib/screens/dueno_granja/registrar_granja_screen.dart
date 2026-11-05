@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../logic/sesion.dart';
-import '../models/granja.dart';
-import '../widgets/campos_granja.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/sesion.dart';
+import '../../models/granja.dart';
+import '../../widgets/campos_granja.dart';
+import '../../widgets/vetlink.dart';
+import '../../widgets/pantalla.dart';
 import 'granja_revision_screen.dart';
 
 class RegistrarGranjaScreen extends StatefulWidget {
@@ -64,7 +65,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
   @override
   Widget build(BuildContext context) {
     final seccion = Theme.of(context).textTheme.labelSmall?.copyWith(color: colorTextoSuave);
-    return PantallaVetLink(
+    return Pantalla(
       titulo: 'Registrar mi granja',
       subtitulo: 'Creá tu cuenta y registrá tu granja.',
       children: [
@@ -73,12 +74,15 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('1 · TUS DATOS', style: seccion)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text('1 · TUS DATOS', style: seccion),
+              ),
               CampoEtiquetado(
                 etiqueta: 'Nombre completo *',
                 child: TextFormField(
                   controller: _dueno,
-                  decoration: decoracionCampo(pista: 'Ana Pérez'),
+                  decoration: decoracionCampo(),
                   textCapitalization: TextCapitalization.words,
                   validator: requerido,
                 ),
@@ -87,7 +91,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
                 etiqueta: 'Correo electrónico *',
                 child: TextFormField(
                   controller: _correo,
-                  decoration: decoracionCampo(pista: 'ana@ejemplo.com'),
+                  decoration: decoracionCampo(),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   validator: requerido,
@@ -102,8 +106,12 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
                   validator: _contrasenaValida,
                 ),
               ),
-              Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('2 · TU GRANJA', style: seccion)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text('2 · TU GRANJA', style: seccion),
+              ),
               CamposGranja(
+                compacto: true,
                 nombre: _granja,
                 superficie: _superficie,
                 runsa: _runsa,
@@ -113,12 +121,8 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
             ],
           ),
         ),
-        const AvisoRol(
-          titulo: 'Tu rol será Dueño',
-          texto: 'Podrás invitar a tu equipo cuando se confirme la granja.',
-        ),
+        const AvisoRol(titulo: 'Tu rol será Dueño', texto: 'Podrás invitar a tu equipo cuando se confirme la granja.'),
         BotonPrincipal(texto: _enviando ? 'Enviando...' : 'Enviar registro', alPresionar: _enviando ? null : _enviar),
-        BotonSecundario(texto: 'Volver', alPresionar: () => Navigator.pop(context)),
       ],
     );
   }

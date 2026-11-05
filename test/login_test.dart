@@ -87,8 +87,10 @@ void main() {
   testWidgets('muestra el diseño de VetLink', (tester) async {
     await tester.pumpWidget(const FichaMedicaApp());
     expect(find.text('Bienvenido a VetLink'), findsOneWidget);
-    expect(find.byType(Image), findsOneWidget);
-    expect(find.text('ana@ejemplo.com'), findsOneWidget);
+    expect(find.image(const AssetImage('assets/images/login_vaca.png')), findsOneWidget);
+    expect(find.image(const AssetImage('assets/images/logo.png')), findsOneWidget);
+    expect(find.text('Correo electrónico'), findsOneWidget);
+    expect(find.text('Contraseña'), findsOneWidget);
   });
 
   testWidgets('recuperar acceso envía el correo y permite volver', (tester) async {
@@ -100,7 +102,7 @@ void main() {
     await tester.pumpWidget(const FichaMedicaApp());
     await tocar(tester, 'Olvidé mi contraseña');
     await tester.pumpAndSettle();
-    expect(find.text('Recuperar acceso'), findsOneWidget);
+    expect(find.text('Recuperar contraseña'), findsOneWidget);
     await tocar(tester, 'Enviar enlace');
     await tester.pump();
     expect(find.text('Campo obligatorio'), findsOneWidget);
@@ -109,7 +111,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(enviado['email'], correo);
     expect(find.text('Si el correo tiene una cuenta, te enviamos el enlace'), findsOneWidget);
-    await tocar(tester, 'Volver');
+    await tocar(tester, '‹ Volver');
     await tester.pumpAndSettle();
     expect(find.text('Bienvenido a VetLink'), findsOneWidget);
   });

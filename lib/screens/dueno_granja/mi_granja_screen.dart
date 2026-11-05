@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../logic/granjas.dart';
-import '../logic/sesion.dart';
-import '../models/miembro.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/granjas.dart';
+import '../../logic/sesion.dart';
+import '../../models/miembro.dart';
+import '../../widgets/vetlink.dart';
+import '../../widgets/pantalla.dart';
 import 'dar_de_baja_screen.dart';
 import 'miembros_screen.dart';
 import 'registrar_otra_granja_screen.dart';
@@ -38,17 +39,13 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
   Widget build(BuildContext context) {
     final datos = Granjas.instance;
     final esDueno = datos.rol == RolMiembro.dueno;
-    return PantallaVetLink(
-      encabezado: EncabezadoVetLink(
-        granja: datos.actual.nombre,
-        rol: datos.rol.etiqueta,
-        alVolver: () => Navigator.pop(context),
-      ),
+    return Pantalla(
       barraInferior: const BarraVetLink(),
       titulo: 'Mi granja',
       subtitulo: '${Sesion.instance.nombre} · Así va el cuidado en ${datos.actual.nombre}.',
       children: [
-        const SizedBox(height: 4),
+        Text(datos.rol.etiqueta, style: const TextStyle(color: colorTextoSuave, fontSize: 12)),
+        const SizedBox(height: 12),
         FutureBuilder<Resumen>(
           future: _resumen,
           builder: (context, estado) {
@@ -129,7 +126,10 @@ class _Dato extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${valor ?? '–'}', style: tema.headlineSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700)),
+            Text(
+              '${valor ?? '–'}',
+              style: tema.headlineSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
+            ),
             Text(etiqueta, style: tema.labelSmall?.copyWith(color: colorTextoSuave)),
           ],
         ),
@@ -160,7 +160,7 @@ class _Opcion extends StatelessWidget {
         child: InkWell(
           onTap: alPresionar,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -168,7 +168,7 @@ class _Opcion extends StatelessWidget {
                   '$titulo  ›',
                   style: tema.titleSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 6),
                 Text(detalle, style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
               ],
             ),

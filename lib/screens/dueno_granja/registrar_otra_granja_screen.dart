@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../logic/granjas.dart';
-import '../logic/sesion.dart';
-import '../models/granja.dart';
-import '../widgets/campos_granja.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/granjas.dart';
+import '../../logic/sesion.dart';
+import '../../models/granja.dart';
+import '../../widgets/campos_granja.dart';
+import '../../widgets/vetlink.dart';
 
 class RegistrarOtraGranjaScreen extends StatefulWidget {
   const RegistrarOtraGranjaScreen({super.key, this.elegir = elegirDocumento});

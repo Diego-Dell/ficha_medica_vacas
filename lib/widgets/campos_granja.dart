@@ -31,10 +31,12 @@ class CamposGranja extends StatelessWidget {
     required this.runsa,
     required this.alElegirDocumento,
     required this.elegir,
+    this.compacto = false,
     this.etiquetaNombre = 'Nombre *',
     this.etiquetaDocumento = 'Documentación del terreno *',
   });
 
+  final bool compacto;
   final TextEditingController nombre;
   final TextEditingController superficie;
   final TextEditingController runsa;
@@ -52,7 +54,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: etiquetaNombre,
           child: TextFormField(
             controller: nombre,
-            decoration: decoracionCampo(pista: 'Los Pinos'),
+            decoration: decoracionCampo(pista: compacto ? null : 'Los Pinos'),
             textCapitalization: TextCapitalization.words,
             validator: requerido,
           ),
@@ -61,7 +63,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: 'Superficie (hectáreas) *',
           child: TextFormField(
             controller: superficie,
-            decoration: decoracionCampo(pista: '18'),
+            decoration: decoracionCampo(pista: compacto ? null : '18'),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             validator: superficieValida,
           ),
@@ -70,7 +72,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: 'RUNSA *',
           child: TextFormField(
             controller: runsa,
-            decoration: decoracionCampo(pista: 'SC-02418'),
+            decoration: decoracionCampo(pista: compacto ? null : 'SC-02418'),
             textCapitalization: TextCapitalization.characters,
             validator: requerido,
           ),
@@ -88,7 +90,10 @@ class CamposGranja extends StatelessWidget {
                 alElegirDocumento(archivo);
               },
               child: InputDecorator(
-                decoration: decoracionCampo().copyWith(errorText: campo.errorText),
+                decoration: decoracionCampo().copyWith(
+                  errorText: campo.errorText,
+                  prefixIcon: compacto ? const Icon(Icons.upload_outlined, size: 18, color: colorVerde) : null,
+                ),
                 child: Text(
                   campo.value == null ? 'Elegir archivo' : '${campo.value} ✓',
                   overflow: TextOverflow.ellipsis,
@@ -119,7 +124,10 @@ class AvisoRol extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(titulo, style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700)),
+          Text(
+            titulo,
+            style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 4),
           Text(texto, style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
         ],

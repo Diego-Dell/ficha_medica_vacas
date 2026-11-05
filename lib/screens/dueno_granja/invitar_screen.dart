@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../logic/granjas.dart';
-import '../models/miembro.dart';
-import '../widgets/campos_granja.dart';
-import '../widgets/vetlink.dart';
+import '../../logic/granjas.dart';
+import '../../models/miembro.dart';
+import '../../widgets/campos_granja.dart';
+import '../../widgets/vetlink.dart';
 
 class InvitarScreen extends StatefulWidget {
   const InvitarScreen({super.key});

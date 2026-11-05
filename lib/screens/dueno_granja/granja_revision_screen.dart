@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/granja.dart';
-import '../widgets/vetlink.dart';
+import '../../models/granja.dart';
+import '../../widgets/vetlink.dart';
 
 class GranjaRevisionScreen extends StatelessWidget {
   const GranjaRevisionScreen({super.key, required this.granja});
