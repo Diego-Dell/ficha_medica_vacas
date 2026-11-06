@@ -37,6 +37,9 @@ class Granjas {
     rol = vinculo.rol;
   }
 
+  /// Consulta la función existente: solo reconoce administradores con cuenta activa.
+  Future<bool> esAdministrador() async => await _db.rpc('es_administrador') == true;
+
   /// 4. Trae las granjas de la cuenta actual con su rol en cada una.
   Future<List<Vinculo>> misVinculos() async {
     final filas = await _db

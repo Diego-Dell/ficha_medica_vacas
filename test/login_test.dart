@@ -8,6 +8,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/main.dart';
+import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/trabajador/cuidados_hoy_screen.dart';
+import 'package:ficha_medica_vacas/screens/veterinario/seguimiento_veterinario_screen.dart';
 
 import 'apoyo.dart';
 
@@ -215,8 +219,57 @@ void main() {
     await tester.pumpAndSettle();
     final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('aceptar_invitacion')) as http.Request;
     expect(jsonDecode(rpc.body), {'p_invitacion': 'i1'});
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
     expect(find.text('Mi granja'), findsOneWidget);
     expect(find.text('Miembros del equipo  ›'), findsNothing);
+  });
+
+  testWidgets('el veterinario entra a su panel con la granja confirmada', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'veterinario', 'granjas': {...filaLosPinos, 'confirmada': false}},
+        {'rol': 'veterinario', 'granjas': filaLosPinos},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(SeguimientoVeterinarioScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+    expect(tester.widget<SeguimientoVeterinarioScreen>(find.byType(SeguimientoVeterinarioScreen)).granja, 'Los Pinos');
+  });
+
+  testWidgets('el administrador entra sin granja y sin aceptar invitaciones', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    final pedidos = <http.BaseRequest>[];
+    simularDatos({'es_administrador': true}, pedidos: pedidos);
+    await ingresar(tester, 'clave');
+    expect(find.byType(AdministracionScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+    expect(find.text('Tu cuenta todavía no tiene una granja'), findsNothing);
+    expect(pedidos.map((p) => p.url.pathSegments.last), ['es_administrador']);
+    expect(find.text('0 granjas por confirmar'), findsNothing);
+  });
+
+  testWidgets('si no se puede verificar el rol no abre ningún panel', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos(const {}, errorAlGuardar: '42501');
+    await ingresar(tester, 'clave');
+    expect(find.byType(AdministracionScreen), findsNothing);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
+  testWidgets('el trabajador entra directamente a su panel', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
   });
 
   testWidgets('la invitación se puede dejar para después', (tester) async {
@@ -260,8 +313,6 @@ void main() {
     Sesion.instance.auth = cliente((_) async => sesionValida());
     simularDatos(const {}, sinRed: true);
     await ingresar(tester, 'clave');
-    await tester.pump(const Duration(minutes: 1));
-    await tester.pumpAndSettle();
     expect(find.text('No se pudieron cargar tus granjas. Intenta de nuevo'), findsOneWidget);
   });
 }
