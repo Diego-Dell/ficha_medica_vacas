@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../logic/granjas.dart';
 import '../../logic/sesion.dart';
+import '../../models/miembro.dart';
+import '../administrador/administracion_screen.dart';
+import '../trabajador/cuidados_hoy_screen.dart';
+import '../veterinario/seguimiento_veterinario_screen.dart';
 import '../../widgets/vetlink.dart';
 import '../../widgets/pantalla.dart';
 import 'crear_cuenta_screen.dart';
@@ -50,6 +54,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _entrar() async {
     try {
+      // El administrador técnico no necesita pertenecer a una granja.
+      final administrador = await Granjas.instance.esAdministrador();
+      if (!mounted) return;
+      if (administrador) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AdministracionScreen(
+          granja: 'Todas las granjas',
+          pendientes: null,
+        )));
+        return;
+      }
+
       // 1. Pregunta por las invitaciones pendientes de la cuenta.
       await _atenderInvitaciones();
 
@@ -61,7 +76,12 @@ class _LoginScreenState extends State<LoginScreen> {
       final confirmado = vinculos.where((v) => v.granja.confirmada).firstOrNull;
       if (confirmado != null) {
         Granjas.instance.seleccionar(confirmado);
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const MiGranjaScreen()));
+        final pantalla = switch (confirmado.rol) {
+          RolMiembro.dueno => const MiGranjaScreen(),
+          RolMiembro.veterinario => SeguimientoVeterinarioScreen(granja: confirmado.granja.nombre),
+          RolMiembro.trabajador => CuidadosHoyScreen(granja: confirmado.granja.nombre),
+        };
+        Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
         return;
       }
 

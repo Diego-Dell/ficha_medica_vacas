@@ -74,7 +74,7 @@ void simularDatos(
         return http.Response(jsonEncode({'id': 'nueva'}), 201, request: pedido);
       }
       return http.Response.bytes(
-        utf8.encode(jsonEncode(tablas[nombre] ?? const [])),
+        utf8.encode(jsonEncode(tablas[nombre] ?? (nombre == 'es_administrador' ? false : const []))),
         200,
         request: pedido,
         headers: {'content-type': 'application/json; charset=utf-8'},

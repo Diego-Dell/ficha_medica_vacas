@@ -11,6 +11,8 @@ class Pantalla extends StatelessWidget {
     this.subtitulo,
     this.volver = true,
     this.barraInferior,
+    this.granja,
+    this.rol,
   });
 
   final String titulo;
@@ -18,6 +20,8 @@ class Pantalla extends StatelessWidget {
   final List<Widget> children;
   final bool volver;
   final Widget? barraInferior;
+  final String? granja;
+  final String? rol;
 
   @override
   Widget build(BuildContext context) {
@@ -48,23 +52,67 @@ class Pantalla extends StatelessWidget {
                       height: 48,
                       child: Row(
                         children: [
-                          Image.asset('assets/images/logo.png', width: 34, height: 34),
+                          Image.asset(
+                            'assets/images/logo.png',
+                            width: 34,
+                            height: 34,
+                          ),
                           const SizedBox(width: 10),
-                          const Expanded(
-                            child: Text(
-                              'VetLink',
-                              style: TextStyle(color: Color(0xFF263F31), fontSize: 16, fontWeight: FontWeight.w600),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'VetLink',
+                                  style: TextStyle(
+                                    color: Color(0xFF263F31),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (granja != null)
+                                  Text(
+                                    granja!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: colorTextoSuave,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           if (volver)
                             TextButton(
                               onPressed: () => Navigator.maybePop(context),
-                              child: const Text('‹ Volver', style: TextStyle(color: colorVerde, fontSize: 12)),
+                              child: const Text(
+                                '‹ Volver',
+                                style: TextStyle(
+                                  color: colorVerde,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                         ],
                       ),
                     ),
                   ),
+                  if (rol != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          rol!,
+                          style: const TextStyle(
+                            color: colorVerde,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -84,7 +132,11 @@ class Pantalla extends StatelessWidget {
                           if (subtitulo != null) ...[
                             Text(
                               subtitulo!,
-                              style: const TextStyle(color: Color(0xFF687365), fontSize: 13, height: 19 / 13),
+                              style: const TextStyle(
+                                color: Color(0xFF687365),
+                                fontSize: 13,
+                                height: 19 / 13,
+                              ),
                             ),
                             const SizedBox(height: 8),
                           ],
