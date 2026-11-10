@@ -9,7 +9,7 @@ import 'sesion.dart';
 typedef Vinculo = ({Granja granja, RolMiembro rol});
 typedef Resumen = ({int animales, int avisos, int miembros});
 
-/// 1. Da un único acceso a los datos de las granjas en Supabase (Singleton).
+/// 1. Da un único acceso a los datos de las granjas (Singleton) y esconde las consultas de Supabase detrás de métodos simples (Facade).
 class Granjas {
   Granjas._();
   static final instance = Granjas._();

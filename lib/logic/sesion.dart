@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/granja.dart';
 import 'granjas.dart';
 
-/// 1. Comparte una sola sesión en toda la app (Singleton).
+/// 1. Comparte una sola sesión en toda la app (Singleton) y esconde los detalles de Supabase Auth detrás de métodos simples (Facade).
 class Sesion {
   Sesion._();
   static final instance = Sesion._();
