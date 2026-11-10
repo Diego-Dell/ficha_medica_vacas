@@ -20,7 +20,8 @@ String? superficieValida(String? valor) {
 }
 
 /// 3. Convierte la superficie a número y acepta coma decimal.
-double leerSuperficie(String valor) => double.parse(valor.trim().replaceAll(',', '.'));
+double leerSuperficie(String valor) =>
+    double.parse(valor.trim().replaceAll(',', '.'));
 
 /// 4. Muestra los campos para registrar una granja: nombre, superficie, RUNSA y documentación.
 class CamposGranja extends StatelessWidget {
@@ -54,7 +55,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: etiquetaNombre,
           child: TextFormField(
             controller: nombre,
-            decoration: decoracionCampo(pista: compacto ? null : 'Los Pinos'),
+            decoration: decoracionCampo(),
             textCapitalization: TextCapitalization.words,
             validator: requerido,
           ),
@@ -92,7 +93,13 @@ class CamposGranja extends StatelessWidget {
               child: InputDecorator(
                 decoration: decoracionCampo().copyWith(
                   errorText: campo.errorText,
-                  prefixIcon: compacto ? const Icon(Icons.upload_outlined, size: 18, color: colorVerde) : null,
+                  prefixIcon: compacto
+                      ? const Icon(
+                          Icons.upload_outlined,
+                          size: 18,
+                          color: colorVerde,
+                        )
+                      : null,
                 ),
                 child: Text(
                   campo.value == null ? 'Elegir archivo' : '${campo.value} ✓',
@@ -120,13 +127,19 @@ class AvisoRol extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: colorVerdeSuave, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: colorVerdeSuave,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             titulo,
-            style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
+            style: tema.labelLarge?.copyWith(
+              color: colorVerdeOscuro,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 4),
           Text(texto, style: tema.bodySmall?.copyWith(color: colorTextoSuave)),

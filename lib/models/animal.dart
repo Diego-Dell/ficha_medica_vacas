@@ -1,7 +1,7 @@
 class Animal {
   const Animal({required this.id, this.nombre, required this.arete, required this.categoria, this.raza});
 
-  /// 1. Crea el animal a partir de una ficha de Supabase.
+  /// 1. Crea el animal a partir de una ficha del servidor.
   factory Animal.fromMap(Map<String, dynamic> fila) => Animal(
         id: fila['id'] as String,
         nombre: fila['nombre'] as String?,

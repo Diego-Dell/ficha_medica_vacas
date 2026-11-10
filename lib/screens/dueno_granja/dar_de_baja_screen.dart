@@ -25,7 +25,7 @@ class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
     super.dispose();
   }
 
-  /// 1. Vuelve a pedir los animales a Supabase.
+  /// 1. Vuelve a pedir los animales al servidor.
   void _recargar() {
     setState(() {
       _animales = Granjas.instance.animalesActivos();
@@ -50,7 +50,7 @@ class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
     if (_enviando || !_form.currentState!.validate()) return;
     setState(() => _enviando = true);
 
-    // 3.2. Guarda la fecha y el motivo en Supabase.
+    // 3.2. Guarda la fecha y el motivo en el servidor.
     final error = await Granjas.instance.darDeBaja(animal, _fecha, _motivo.text.trim());
     if (!mounted) return;
     setState(() => _enviando = false);

@@ -39,7 +39,7 @@ class _Selector extends StatelessWidget {
       titulo: 'Vista previa',
       volver: false,
       subtitulo:
-          'Datos de ejemplo. No se conecta a Supabase ni guarda cambios.',
+          'Vistas de la interfaz. No se conecta al servidor ni guarda cambios.',
       children: [
         BotonPrincipal(
           texto: 'Nueva contraseña',
@@ -49,7 +49,7 @@ class _Selector extends StatelessWidget {
           texto: 'Veterinario',
           alPresionar: () => abrir(
             SeguimientoVeterinarioScreen(
-              granja: 'Los Pinos',
+              granja: 'Granja seleccionada',
               alCerrarSesion: salir,
             ),
           ),
@@ -57,17 +57,16 @@ class _Selector extends StatelessWidget {
         BotonSecundario(
           texto: 'Trabajador',
           alPresionar: () => abrir(
-            CuidadosHoyScreen(granja: 'Los Pinos', alCerrarSesion: salir),
+            CuidadosHoyScreen(
+              granja: 'Granja seleccionada',
+              alCerrarSesion: salir,
+            ),
           ),
         ),
         BotonSecundario(
           texto: 'Administrador',
           alPresionar: () => abrir(
-            AdministracionScreen(
-              granja: 'Los Pinos',
-              pendientes: 1,
-              alCerrarSesion: salir,
-            ),
+            AdministracionScreen(vistaPrevia: true, alCerrarSesion: salir),
           ),
         ),
         BotonSecundario(

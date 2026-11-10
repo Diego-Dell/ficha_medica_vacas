@@ -8,6 +8,7 @@ import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
 import 'apoyo.dart';
 
 void main() {
+  setUp(prepararSesionPrueba);
   for (final ancho in [360.0, 390.0]) {
     testWidgets('Logo y títulos alineados en las cuatro pantallas a $ancho px', (tester) async {
       tester.view.physicalSize = Size(ancho, 800);

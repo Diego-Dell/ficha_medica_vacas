@@ -1,5 +1,8 @@
 # Local configuration
 /config.json
+/server/.env
+/server/node_modules/
+/server/*.sqlite*
 
 # Miscellaneous
 *.class
@@ -46,6 +49,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
 
 # Widget Preview related
 .widget_preview/

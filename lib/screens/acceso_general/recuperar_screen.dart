@@ -27,7 +27,7 @@ class _RecuperarScreenState extends State<RecuperarScreen> {
     if (_enviando || !_form.currentState!.validate()) return;
     setState(() => _enviando = true);
 
-    // 2. Pide a Supabase enviar el enlace.
+    // 2. Pide al servidor enviar el enlace con Mailgun.
     final error = await Sesion.instance.recuperar(_correo.text);
     if (!mounted) return;
     setState(() => _enviando = false);

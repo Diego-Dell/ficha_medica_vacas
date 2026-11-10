@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_enviando || !_form.currentState!.validate()) return;
     setState(() => _enviando = true);
 
-    // 2. Pide a Supabase iniciar la sesión.
+    // 2. Pide al servidor iniciar la sesión.
     final error = await Sesion.instance.iniciar(_correo.text, _contrasena.text);
     if (!mounted) return;
 
@@ -58,10 +58,15 @@ class _LoginScreenState extends State<LoginScreen> {
       final administrador = await Granjas.instance.esAdministrador();
       if (!mounted) return;
       if (administrador) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const AdministracionScreen(
-          granja: 'Todas las granjas',
-          pendientes: null,
-        )));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AdministracionScreen(
+              alCerrarSesion: () =>
+                  Navigator.popUntil(context, (ruta) => ruta.isFirst),
+            ),
+          ),
+        );
         return;
       }
 
@@ -78,8 +83,12 @@ class _LoginScreenState extends State<LoginScreen> {
         Granjas.instance.seleccionar(confirmado);
         final pantalla = switch (confirmado.rol) {
           RolMiembro.dueno => const MiGranjaScreen(),
-          RolMiembro.veterinario => SeguimientoVeterinarioScreen(granja: confirmado.granja.nombre),
-          RolMiembro.trabajador => CuidadosHoyScreen(granja: confirmado.granja.nombre),
+          RolMiembro.veterinario => SeguimientoVeterinarioScreen(
+            granja: confirmado.granja.nombre,
+          ),
+          RolMiembro.trabajador => CuidadosHoyScreen(
+            granja: confirmado.granja.nombre,
+          ),
         };
         Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
         return;
@@ -88,14 +97,21 @@ class _LoginScreenState extends State<LoginScreen> {
       // 4. Si ninguna está confirmada, muestra la que sigue en revisión.
       if (vinculos.isNotEmpty) {
         final granja = vinculos.first.granja;
-        Navigator.push(context, MaterialPageRoute(builder: (_) => GranjaRevisionScreen(granja: granja)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GranjaRevisionScreen(granja: granja),
+          ),
+        );
         return;
       }
 
       // 5. Avisa si la cuenta todavía no tiene granjas.
       avisar(context, 'Tu cuenta todavía no tiene una granja');
     } on Exception {
-      if (mounted) avisar(context, 'No se pudieron cargar tus granjas. Intenta de nuevo');
+      if (mounted) {
+        avisar(context, 'No se pudieron cargar tus granjas. Intenta de nuevo');
+      }
     }
   }
 
@@ -106,10 +122,18 @@ class _LoginScreenState extends State<LoginScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Tienes una invitación'),
-          content: Text('Te invitaron a una granja como ${invitacion.rol.etiqueta}. ¿Quieres unirte?'),
+          content: Text(
+            'Te invitaron a una granja como ${invitacion.rol.etiqueta}. ¿Quieres unirte?',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Ahora no')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Aceptar')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Ahora no'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Aceptar'),
+            ),
           ],
         ),
       );
@@ -172,20 +196,30 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         BotonSecundario(
           texto: 'Olvidé mi contraseña',
-          alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecuperarScreen())),
+          alPresionar: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RecuperarScreen()),
+          ),
         ),
         BotonSecundario(
           texto: 'Registrar mi granja',
-          alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistrarGranjaScreen())),
+          alPresionar: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RegistrarGranjaScreen()),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           '¿Sos veterinario o trabajador? Pedile al dueño que te invite por correo.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorTextoSuave),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: colorTextoSuave),
         ),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: colorVerde),
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CrearCuentaScreen())),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CrearCuentaScreen()),
+          ),
           child: const Text('Me invitaron: crear cuenta'),
         ),
       ],

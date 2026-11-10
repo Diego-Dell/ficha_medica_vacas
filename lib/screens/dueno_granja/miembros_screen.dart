@@ -18,7 +18,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
   late Future<_Equipo> _equipo = _cargar();
   bool _reenviando = false;
 
-  /// 1. Pide a Supabase los miembros y las invitaciones pendientes.
+  /// 1. Pide al servidor los miembros y las invitaciones pendientes.
   Future<_Equipo> _cargar() async {
     final datos = Granjas.instance;
     final (miembros, invitaciones) = await (datos.miembros(), datos.invitaciones()).wait;
@@ -34,6 +34,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
 
   /// 3. Reenvía el correo de todas las invitaciones pendientes.
   Future<void> _reenviar() async {
+    if (_reenviando) return;
     setState(() => _reenviando = true);
     final List<Invitacion> pendientes;
     try {
@@ -48,14 +49,15 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     final resultados = await Future.wait(pendientes.map((i) => Granjas.instance.enviarCorreo(i.id)));
     if (!mounted) return;
     setState(() => _reenviando = false);
-    final enviados = resultados.where((enviado) => enviado).length;
+    final enviados = resultados.where((error) => error == null).length;
+    final errores = resultados.whereType<String>().toSet().join('. ');
     avisar(
       context,
       pendientes.isEmpty
           ? 'No hay invitaciones pendientes'
           : enviados == pendientes.length
               ? 'Se reenviaron $enviados de $enviados invitaciones'
-              : 'Solo se reenviaron $enviados de ${pendientes.length} invitaciones',
+              : 'Solo se reenviaron $enviados de ${pendientes.length} invitaciones. $errores. Puedes volver a reenviar',
     );
   }
 

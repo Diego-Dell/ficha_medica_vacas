@@ -10,7 +10,7 @@ enum RolMiembro {
 class Miembro {
   const Miembro({required this.nombre, required this.correo, required this.rol});
 
-  /// 1. Crea el miembro a partir de una vinculación de Supabase; sin nombre registrado usa el correo.
+  /// 1. Crea el miembro a partir de una vinculación; sin nombre registrado usa el correo.
   factory Miembro.fromMap(Map<String, dynamic> fila) {
     final cuenta = fila['cuentas'] as Map<String, dynamic>;
     final correo = cuenta['identificador'] as String;
@@ -29,7 +29,7 @@ class Miembro {
 class Invitacion {
   const Invitacion({this.id = '', required this.correo, required this.rol, required this.enviada});
 
-  /// 2. Crea la invitación a partir de una fila de Supabase.
+  /// 2. Crea la invitación a partir de una fila del servidor.
   factory Invitacion.fromMap(Map<String, dynamic> fila) => Invitacion(
         id: fila['id'] as String,
         correo: fila['correo'] as String,
