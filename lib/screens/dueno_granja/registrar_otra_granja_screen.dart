@@ -62,7 +62,6 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
     void volver() => Navigator.pop(context);
     return PantallaVetLink(
       encabezado: EncabezadoVetLink(granja: Granjas.instance.actual.nombre, rol: 'Dueño', alVolver: volver),
-      barraInferior: BarraVetLink(alVolver: volver),
       titulo: 'Registrar otra granja',
       subtitulo: 'Se usará tu cuenta actual: ${Sesion.instance.usuario ?? ''}.',
       children: [

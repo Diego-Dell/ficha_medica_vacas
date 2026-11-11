@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/acceso_general/login_screen.dart';
-import 'screens/acceso_general/nueva_contrasena_screen.dart';
-import 'screens/administrador/administracion_screen.dart';
 import 'screens/trabajador/cuidados_hoy_screen.dart';
 import 'screens/veterinario/seguimiento_veterinario_screen.dart';
 import 'widgets/pantalla.dart';
@@ -42,10 +40,6 @@ class _Selector extends StatelessWidget {
           'Datos de ejemplo. No se conecta a Supabase ni guarda cambios.',
       children: [
         BotonPrincipal(
-          texto: 'Nueva contraseña',
-          alPresionar: () => abrir(const NuevaContrasenaScreen()),
-        ),
-        BotonSecundario(
           texto: 'Veterinario',
           alPresionar: () => abrir(
             SeguimientoVeterinarioScreen(
@@ -58,16 +52,6 @@ class _Selector extends StatelessWidget {
           texto: 'Trabajador',
           alPresionar: () => abrir(
             CuidadosHoyScreen(granja: 'Los Pinos', alCerrarSesion: salir),
-          ),
-        ),
-        BotonSecundario(
-          texto: 'Administrador',
-          alPresionar: () => abrir(
-            AdministracionScreen(
-              granja: 'Los Pinos',
-              pendientes: 1,
-              alCerrarSesion: salir,
-            ),
           ),
         ),
         BotonSecundario(

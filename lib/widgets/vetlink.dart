@@ -99,44 +99,7 @@ class PantallaVetLink extends StatelessWidget {
   }
 }
 
-/// 6. Muestra la barra inferior de una granja; con [alVolver], la primera opción regresa en vez de ser "Inicio".
-class BarraVetLink extends StatelessWidget {
-  const BarraVetLink({super.key, this.alVolver});
-
-  final VoidCallback? alVolver;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget opcion(String texto, VoidCallback? alPresionar) => Expanded(
-          child: TextButton(
-            style: TextButton.styleFrom(foregroundColor: colorVerdeOscuro),
-            onPressed: alPresionar,
-            child: Text(texto, style: const TextStyle(fontSize: 12)),
-          ),
-        );
-    void pronto(String funcion) => avisar(context, '$funcion estará disponible pronto');
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: colorBorde)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            alVolver == null ? opcion('Inicio', null) : opcion('‹ Volver', alVolver),
-            opcion('Avisos', () => pronto('Avisos')),
-            opcion('Reportes', () => pronto('Reportes')),
-            opcion('Más', () => pronto('Más')),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 7. Muestra el logo y el nombre de la app; con [granja] agrega la granja actual y con [alVolver] el enlace de regreso.
+/// 6. Muestra el logo y el nombre de la app; con [granja] agrega la granja actual y con [alVolver] el enlace de regreso.
 class EncabezadoVetLink extends StatelessWidget {
   const EncabezadoVetLink({super.key, this.granja, this.rol, this.alVolver});
 
@@ -183,7 +146,7 @@ class EncabezadoVetLink extends StatelessWidget {
   }
 }
 
-/// 8. Muestra un campo de formulario con su etiqueta arriba.
+/// 7. Muestra un campo de formulario con su etiqueta arriba.
 class CampoEtiquetado extends StatelessWidget {
   const CampoEtiquetado({super.key, required this.etiqueta, required this.child});
 
@@ -206,7 +169,7 @@ class CampoEtiquetado extends StatelessWidget {
   }
 }
 
-/// 9. Muestra el botón con la acción principal de la pantalla.
+/// 8. Muestra el botón con la acción principal de la pantalla.
 class BotonPrincipal extends StatelessWidget {
   const BotonPrincipal({super.key, required this.texto, required this.alPresionar, this.color = colorVerde});
 
@@ -231,7 +194,7 @@ class BotonPrincipal extends StatelessWidget {
   }
 }
 
-/// 10. Muestra el botón blanco de las acciones secundarias.
+/// 9. Muestra el botón blanco de las acciones secundarias.
 class BotonSecundario extends StatelessWidget {
   const BotonSecundario({super.key, required this.texto, required this.alPresionar});
 
