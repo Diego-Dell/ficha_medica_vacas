@@ -129,8 +129,10 @@ void main() {
 
   testWidgets('la persona invitada crea su cuenta sin datos de granja', (tester) async {
     late Map<String, dynamic> enviado;
+    late Uri direccion;
     Sesion.instance.auth = cliente((pedido) async {
       enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
+      direccion = pedido.url;
       return http.Response(
         jsonEncode({
           'id': '2',
@@ -166,7 +168,8 @@ void main() {
     await tocarCrear();
     expect(enviado['email'], correo);
     expect(enviado['data'], {'nombre': 'Sofía Rojas'});
-    expect(find.text('Confirma tu correo e inicia sesión para aceptar la invitación'), findsOneWidget);
+    expect(find.text('Te enviamos un correo. Tocá el enlace desde este celular para confirmar la cuenta'), findsOneWidget);
+    expect(direccion.queryParameters['redirect_to'], 'vetlink://confirmar');
     expect(find.text('Bienvenido a VetLink'), findsOneWidget);
   });
 
@@ -376,6 +379,38 @@ void main() {
     expect(find.text('Miembros del equipo  ›'), findsOneWidget);
     expect(find.byType(SeguimientoVeterinarioScreen), findsNothing);
     expect(find.byType(SeleccionarGranjaScreen), findsNothing);
+  });
+
+  test('solo los enlaces con datos de sesión se entregan a Supabase', () {
+    expect(Sesion.instance.recordarEnlace(Uri.parse('vetlink://confirmar?code=abc')), isTrue);
+    expect(Sesion.instance.recordarEnlace(Uri.parse('vetlink://restablecer#error=access_denied')), isTrue);
+    expect(Sesion.instance.recordarEnlace(Uri.parse('vetlink://invitacion')), isFalse);
+  });
+
+  testWidgets('el enlace de confirmación entra directo a la cuenta', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await tester.pumpWidget(const FichaMedicaApp());
+    Sesion.instance.recordarEnlace(Uri.parse('vetlink://confirmar?code=abc'));
+    await tester.runAsync(() => Sesion.instance.iniciar(correo, 'clave'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tu correo quedó confirmado'), findsOneWidget);
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+  });
+
+  testWidgets('un enlace vencido avisa que hay que pedir otro', (tester) async {
+    final auth = cliente((_) async => sesionValida());
+    Sesion.instance.auth = auth;
+    await tester.pumpWidget(const FichaMedicaApp());
+    Sesion.instance.recordarEnlace(Uri.parse('vetlink://confirmar?error=access_denied'));
+    // ignore: invalid_use_of_internal_member
+    auth.notifyException(AuthException('otp_expired'));
+    await tester.pumpAndSettle();
+    expect(find.text('El enlace venció o ya se usó. Pedí uno nuevo'), findsOneWidget);
   });
 
   testWidgets('cerrar sesión cierra la sesión en Supabase y vuelve al login', (tester) async {

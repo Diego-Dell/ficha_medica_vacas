@@ -15,17 +15,35 @@ class Sesion {
   static const _url = String.fromEnvironment('SUPABASE_URL');
   static const _clavePublica = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
-  /// Enlace que abre la app desde el correo de recuperación; debe estar en Redirect URLs de Supabase.
+  /// Enlaces que abren la app desde los correos de Supabase Auth; deben estar en Redirect URLs de Supabase.
   static const enlaceRecuperacion = 'vetlink://restablecer';
+  static const enlaceConfirmacion = 'vetlink://confirmar';
 
   GoTrueClient? _auth;
+
+  /// Pantalla del último enlace del correo que abrió la app, mientras su resultado no se atienda.
+  String? _enlace;
 
   /// 3. Conecta con Supabase; sin configuración nadie puede iniciar sesión.
   Future<void> inicializar() async {
     if (_url.isEmpty || _clavePublica.isEmpty) return;
-    await Supabase.initialize(url: _url, publishableKey: _clavePublica);
+    await Supabase.initialize(
+      url: _url,
+      publishableKey: _clavePublica,
+      authOptions: FlutterAuthClientOptions(detectSessionInUriPredicate: recordarEnlace),
+    );
     _auth = Supabase.instance.client.auth;
     Granjas.instance.conectar(Supabase.instance.client);
+  }
+
+  /// 3.1. Anota qué enlace del correo abrió la app y le dice a Supabase si trae datos de sesión.
+  @visibleForTesting
+  bool recordarEnlace(Uri uri) {
+    final fragmento = Uri.splitQueryString(uri.fragment);
+    bool tiene(String clave) => uri.queryParameters.containsKey(clave) || fragmento.containsKey(clave);
+    final deSesion = ['code', 'access_token', 'error', 'error_description'].any(tiene);
+    if (deSesion) _enlace = uri.host;
+    return deSesion;
   }
 
   @visibleForTesting
@@ -73,7 +91,7 @@ class Sesion {
     final auth = _auth;
     if (auth == null) return 'La app no está configurada';
     try {
-      await auth.signUp(email: correo.trim(), password: contrasena, data: datos);
+      await auth.signUp(email: correo.trim(), password: contrasena, data: datos, emailRedirectTo: enlaceConfirmacion);
       return null;
     } on AuthRetryableFetchException {
       return 'No se pudo conectar. Revisa tu internet';
@@ -107,7 +125,10 @@ class Sesion {
 
   /// 9. Avisa cuando la app se abre desde el enlace de recuperación (patrón Observer).
   StreamSubscription<AuthState>? alRecuperar(VoidCallback accion) =>
-      _auth?.onAuthStateChange.where((estado) => estado.event == AuthChangeEvent.passwordRecovery).listen((_) => accion());
+      _auth?.onAuthStateChange.where((estado) => estado.event == AuthChangeEvent.passwordRecovery).listen((_) {
+        _enlace = null;
+        accion();
+      });
 
   /// 10. Guarda la nueva contraseña de la sesión abierta por el enlace; devuelve null o el mensaje de error.
   Future<String?> cambiarContrasena(String contrasena) async {
@@ -136,4 +157,22 @@ class Sesion {
       return;
     }
   }
+
+  /// 12. Avisa cuando el enlace de confirmación abre la app o cuando un enlace del correo ya no sirve (patrón Observer).
+  StreamSubscription<AuthState>? alAbrirEnlace({
+    required VoidCallback alConfirmar,
+    required ValueChanged<String> alFallar,
+  }) =>
+      _auth?.onAuthStateChange.listen(
+        (estado) {
+          if (estado.event != AuthChangeEvent.signedIn || _enlace != 'confirmar') return;
+          _enlace = null;
+          alConfirmar();
+        },
+        onError: (Object _) {
+          if (_enlace == null) return;
+          _enlace = null;
+          alFallar('El enlace venció o ya se usó. Pedí uno nuevo');
+        },
+      );
 }

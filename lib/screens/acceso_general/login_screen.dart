@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../logic/granjas.dart';
 import '../../logic/sesion.dart';
@@ -23,9 +26,29 @@ class _LoginScreenState extends State<LoginScreen> {
   final _correo = TextEditingController();
   final _contrasena = TextEditingController();
   bool _enviando = false;
+  StreamSubscription<AuthState>? _enlaces;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 1. Si la app se abre desde el enlace de confirmación, entra directo a la cuenta ya confirmada.
+    _enlaces = Sesion.instance.alAbrirEnlace(
+      alConfirmar: () {
+        if (!mounted) return;
+        Navigator.popUntil(context, (ruta) => ruta.isFirst);
+        avisar(context, 'Tu correo quedó confirmado');
+        _entrar();
+      },
+      alFallar: (mensaje) {
+        if (mounted) avisar(context, mensaje);
+      },
+    );
+  }
 
   @override
   void dispose() {
+    _enlaces?.cancel();
     _correo.dispose();
     _contrasena.dispose();
     super.dispose();

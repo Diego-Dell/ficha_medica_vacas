@@ -42,7 +42,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
       avisar(context, error);
       return;
     }
-    avisar(context, 'Confirma tu correo e inicia sesión para aceptar la invitación');
+    avisar(context, 'Te enviamos un correo. Tocá el enlace desde este celular para confirmar la cuenta');
     Navigator.pop(context);
   }
 

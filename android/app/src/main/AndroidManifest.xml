@@ -25,12 +25,14 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Abre la app desde el enlace del correo de recuperación (vetlink://restablecer). -->
+            <!-- Abre la app desde los enlaces de los correos: recuperar contraseña, confirmar cuenta e invitación. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="vetlink" android:host="restablecer"/>
+                <data android:scheme="vetlink" android:host="confirmar"/>
+                <data android:scheme="vetlink" android:host="invitacion"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
