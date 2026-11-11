@@ -40,9 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
         avisar(context, 'Tu correo quedó confirmado');
         _entrar();
       },
-      alFallar: (mensaje) {
+      alFallar: (mensaje) => WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) avisar(context, mensaje);
-      },
+      }),
     );
   }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,6 +25,15 @@ class Sesion {
   /// Pantalla del último enlace del correo que abrió la app, mientras su resultado no se atienda.
   String? _enlace;
 
+  /// Códigos de enlace ya validados, para no gastar dos veces el mismo.
+  final _tokensAtendidos = <String>{};
+
+  /// Quién muestra los enlaces que fallan y el aviso que llegó antes de que alguien escuchara.
+  ValueChanged<String>? _alFallar;
+  String? _falloPendiente;
+
+  static const _enlaceVencido = 'El enlace venció o ya se usó. Pedí uno nuevo';
+
   /// 3. Conecta con Supabase; sin configuración nadie puede iniciar sesión.
   Future<void> inicializar() async {
     if (_url.isEmpty || _clavePublica.isEmpty) return;
@@ -34,6 +44,37 @@ class Sesion {
     );
     _auth = Supabase.instance.client.auth;
     Granjas.instance.conectar(Supabase.instance.client);
+
+    // 3.2. Escucha los enlaces con token_hash; el que abrió la app llega antes de escuchar, así que se pide aparte.
+    final enlaces = AppLinks();
+    enlaces.uriLinkStream.listen(atenderEnlace);
+    final inicial = await enlaces.getInitialLink();
+    if (inicial != null) unawaited(atenderEnlace(inicial));
+  }
+
+  /// 3.3. Valida el token_hash que trae el enlace; llega desde la función abrir-cuenta, que solo redirige para que ningún revisor de correo lo gaste.
+  Future<void> atenderEnlace(Uri uri) async {
+    final token = uri.queryParameters['token_hash'];
+    final auth = _auth;
+    if (token == null || auth == null || !_tokensAtendidos.add(token)) return;
+    _enlace = uri.host;
+    try {
+      final tipo = uri.queryParameters['type'] == 'recovery' ? OtpType.recovery : OtpType.email;
+      await auth.verifyOTP(tokenHash: token, type: tipo);
+    } on Exception {
+      _enlace = null;
+      _avisarFallo(_enlaceVencido);
+    }
+  }
+
+  /// 3.4. Entrega el aviso de un enlace fallido o lo guarda hasta que alguien escuche.
+  void _avisarFallo(String mensaje) {
+    final alFallar = _alFallar;
+    if (alFallar == null) {
+      _falloPendiente = mensaje;
+    } else {
+      alFallar(mensaje);
+    }
   }
 
   /// 3.1. Anota qué enlace del correo abrió la app y le dice a Supabase si trae datos de sesión.
@@ -128,7 +169,7 @@ class Sesion {
       _auth?.onAuthStateChange.where((estado) => estado.event == AuthChangeEvent.passwordRecovery).listen((_) {
         _enlace = null;
         accion();
-      });
+      }, onError: (Object _) {});
 
   /// 10. Guarda la nueva contraseña de la sesión abierta por el enlace; devuelve null o el mensaje de error.
   Future<String?> cambiarContrasena(String contrasena) async {
@@ -162,17 +203,22 @@ class Sesion {
   StreamSubscription<AuthState>? alAbrirEnlace({
     required VoidCallback alConfirmar,
     required ValueChanged<String> alFallar,
-  }) =>
-      _auth?.onAuthStateChange.listen(
-        (estado) {
-          if (estado.event != AuthChangeEvent.signedIn || _enlace != 'confirmar') return;
-          _enlace = null;
-          alConfirmar();
-        },
-        onError: (Object _) {
-          if (_enlace == null) return;
-          _enlace = null;
-          alFallar('El enlace venció o ya se usó. Pedí uno nuevo');
-        },
-      );
+  }) {
+    _alFallar = alFallar;
+    final pendiente = _falloPendiente;
+    _falloPendiente = null;
+    if (pendiente != null) alFallar(pendiente);
+    return _auth?.onAuthStateChange.listen(
+      (estado) {
+        if (estado.event != AuthChangeEvent.signedIn || _enlace != 'confirmar') return;
+        _enlace = null;
+        alConfirmar();
+      },
+      onError: (Object _) {
+        if (_enlace == null) return;
+        _enlace = null;
+        _avisarFallo(_enlaceVencido);
+      },
+    );
+  }
 }

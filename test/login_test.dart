@@ -413,6 +413,51 @@ void main() {
     expect(find.text('El enlace venció o ya se usó. Pedí uno nuevo'), findsOneWidget);
   });
 
+  testWidgets('el enlace con token_hash de confirmación valida el código y entra', (tester) async {
+    final pedidos = <http.Request>[];
+    Sesion.instance.auth = cliente((pedido) async {
+      pedidos.add(pedido);
+      return sesionValida();
+    });
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await tester.pumpWidget(const FichaMedicaApp());
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://confirmar?token_hash=hash_confirmar&type=email')));
+    await tester.pumpAndSettle();
+    final verificacion = pedidos.singleWhere((p) => p.url.path.endsWith('verify'));
+    expect(jsonDecode(verificacion.body), containsPair('token_hash', 'hash_confirmar'));
+    expect(jsonDecode(verificacion.body), containsPair('type', 'email'));
+    expect(find.text('Tu correo quedó confirmado'), findsOneWidget);
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+
+    // 5. El mismo enlace abierto dos veces no gasta el código otra vez.
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://confirmar?token_hash=hash_confirmar&type=email')));
+    expect(pedidos.where((p) => p.url.path.endsWith('verify')), hasLength(1));
+  });
+
+  testWidgets('el enlace con token_hash de recuperación abre Nueva contraseña', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    await tester.pumpWidget(const FichaMedicaApp());
+    final suscripcion = Sesion.instance.alRecuperar(
+      () => navegador.currentState?.push(MaterialPageRoute(builder: (_) => const NuevaContrasenaScreen())),
+    );
+    addTearDown(() => suscripcion?.cancel());
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://restablecer?token_hash=hash_recuperar&type=recovery')));
+    await tester.pumpAndSettle();
+    expect(find.byType(NuevaContrasenaScreen), findsOneWidget);
+  });
+
+  testWidgets('el enlace con token_hash vencido avisa que hay que pedir otro', (tester) async {
+    Sesion.instance.auth = cliente((_) async => error(403, 'otp_expired'));
+    await tester.pumpWidget(const FichaMedicaApp());
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://restablecer?token_hash=hash_vencido&type=recovery')));
+    await tester.pumpAndSettle();
+    expect(find.text('El enlace venció o ya se usó. Pedí uno nuevo'), findsOneWidget);
+  });
+
   testWidgets('cerrar sesión cierra la sesión en Supabase y vuelve al login', (tester) async {
     final rutas = <String>[];
     Sesion.instance.auth = cliente((pedido) async {
