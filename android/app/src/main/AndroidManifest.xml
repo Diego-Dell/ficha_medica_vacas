@@ -25,6 +25,8 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Los enlaces los atiende Supabase; Flutter no debe tratarlos como rutas de navegación. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
             <!-- Abre la app desde los enlaces de los correos: recuperar contraseña, confirmar cuenta e invitación. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
