@@ -232,6 +232,23 @@ void main() {
     expect(find.text('Miembros del equipo  ›'), findsNothing);
   });
 
+  testWidgets('si la invitación ya no está vigente avisa y sigue entrando', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'invitaciones': [
+        {'id': 'i1', 'correo': correo, 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
+      ],
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    }, rpcQueFalla: 'aceptar_invitacion');
+    await ingresar(tester, 'clave');
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
+    expect(find.text('La invitación ya no está vigente'), findsOneWidget);
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+  });
+
   testWidgets('el veterinario entra a su panel con la granja confirmada', (tester) async {
     Sesion.instance.auth = cliente((_) async => sesionValida());
     simularDatos({

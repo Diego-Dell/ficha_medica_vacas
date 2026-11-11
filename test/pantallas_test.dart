@@ -184,7 +184,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField), 'nueva@ejemplo.com');
     await tocar(tester, 'Enviar invitación');
     expect(
-      find.text('La invitación quedó guardada, pero no se pudo enviar el correo. Reenvíala desde Miembros'),
+      find.text('La invitación quedó guardada, pero el correo no salió: El envío de correos no está configurado. Reenvíala desde Miembros'),
       findsOneWidget,
     );
     expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
@@ -204,7 +204,7 @@ void main() {
     simularDatos(tablasEquipo, correoFalla: true);
     await abrir(tester, const MiembrosScreen());
     await tocar(tester, 'Reenviar invitación');
-    expect(find.text('Solo se reenviaron 0 de 1 invitaciones'), findsOneWidget);
+    expect(find.text('Solo se reenviaron 0 de 1 invitaciones: El envío de correos no está configurado'), findsOneWidget);
 
     simularDatos({'vinculaciones': tablasEquipo['vinculaciones']!});
     await abrir(tester, const SizedBox());

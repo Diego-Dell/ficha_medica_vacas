@@ -48,9 +48,9 @@ class _InvitarScreenState extends State<InvitarScreen> {
     }
     avisar(
       context,
-      resultado.correoEnviado
+      resultado.errorCorreo == null
           ? 'Invitación enviada a ${_correo.text.trim().toLowerCase()}'
-          : 'La invitación quedó guardada, pero no se pudo enviar el correo. Reenvíala desde Miembros',
+          : 'La invitación quedó guardada, pero el correo no salió: ${resultado.errorCorreo}. Reenvíala desde Miembros',
     );
     Navigator.pop(context);
   }

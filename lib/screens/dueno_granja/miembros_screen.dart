@@ -48,14 +48,15 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     final resultados = await Future.wait(pendientes.map((i) => Granjas.instance.enviarCorreo(i.id)));
     if (!mounted) return;
     setState(() => _reenviando = false);
-    final enviados = resultados.where((enviado) => enviado).length;
+    final enviados = resultados.where((error) => error == null).length;
+    final motivo = resultados.nonNulls.firstOrNull;
     avisar(
       context,
       pendientes.isEmpty
           ? 'No hay invitaciones pendientes'
           : enviados == pendientes.length
               ? 'Se reenviaron $enviados de $enviados invitaciones'
-              : 'Solo se reenviaron $enviados de ${pendientes.length} invitaciones',
+              : 'Solo se reenviaron $enviados de ${pendientes.length} invitaciones: $motivo',
     );
   }
 

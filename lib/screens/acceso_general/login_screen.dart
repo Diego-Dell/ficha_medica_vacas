@@ -98,7 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
       );
-      if (acepta ?? false) await Granjas.instance.aceptarInvitacion(invitacion);
+      if (!(acepta ?? false)) continue;
+
+      // 1. Si la invitación ya no está vigente, avisa y sigue con las demás.
+      final error = await Granjas.instance.aceptarInvitacion(invitacion);
+      if (error != null && mounted) avisar(context, error);
     }
   }
 

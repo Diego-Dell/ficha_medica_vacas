@@ -103,37 +103,42 @@ class Granjas {
     }
   }
 
-  /// 9. Guarda la invitación y envía el correo; devuelve el error o si el correo salió.
-  Future<({String? error, bool correoEnviado})> invitar(String correo, RolMiembro rol) async {
+  /// 9. Guarda la invitación y envía el correo; devuelve el error de la invitación o el motivo por el que no salió el correo.
+  Future<({String? error, String? errorCorreo})> invitar(String correo, RolMiembro rol) async {
     final limpio = correo.trim().toLowerCase();
     try {
       final equipo = await miembros();
       if (equipo.any((m) => m.correo.toLowerCase() == limpio)) {
-        return (error: 'Esa persona ya es miembro de la granja', correoEnviado: false);
+        return (error: 'Esa persona ya es miembro de la granja', errorCorreo: null);
       }
       final fila = await _db
           .from('invitaciones')
           .insert({'granja_id': actual.id, 'correo': limpio, 'rol': rol.name})
           .select('id')
           .single();
-      return (error: null, correoEnviado: await enviarCorreo(fila['id'] as String));
+      return (error: null, errorCorreo: await enviarCorreo(fila['id'] as String));
     } on PostgrestException catch (e) {
       final mensaje = e.code == '23505'
           ? 'Esa persona ya tiene una invitación pendiente'
           : 'No se pudo registrar la invitación';
-      return (error: mensaje, correoEnviado: false);
+      return (error: mensaje, errorCorreo: null);
     } on Exception {
-      return (error: 'No se pudo conectar. Revisa tu internet', correoEnviado: false);
+      return (error: 'No se pudo conectar. Revisa tu internet', errorCorreo: null);
     }
   }
 
-  /// 10. Pide a la función de Supabase enviar el correo de una invitación con Mailgun.
-  Future<bool> enviarCorreo(String invitacionId) async {
+  /// 10. Pide a la función de Supabase enviar el correo con Mailgun; devuelve null o el motivo que informa la función.
+  Future<String?> enviarCorreo(String invitacionId) async {
     try {
       await _db.functions.invoke('dynamic-action', body: {'invitacion_id': invitacionId});
-      return true;
+      return null;
+    } on FunctionsFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on FunctionException catch (e) {
+      final detalle = e.details;
+      return detalle is Map && detalle['error'] is String ? detalle['error'] as String : 'No se pudo enviar el correo';
     } on Exception {
-      return false;
+      return 'No se pudo enviar el correo';
     }
   }
 
@@ -144,9 +149,17 @@ class Granjas {
     return filas.map(Invitacion.fromMap).where((i) => i.correo.toLowerCase() == correo).toList();
   }
 
-  /// 12. Acepta una invitación y vincula la cuenta a su granja.
-  Future<void> aceptarInvitacion(Invitacion invitacion) =>
-      _db.rpc('aceptar_invitacion', params: {'p_invitacion': invitacion.id});
+  /// 12. Acepta una invitación y vincula la cuenta a su granja; devuelve null o el mensaje de error.
+  Future<String?> aceptarInvitacion(Invitacion invitacion) async {
+    try {
+      await _db.rpc('aceptar_invitacion', params: {'p_invitacion': invitacion.id});
+      return null;
+    } on PostgrestException {
+      return 'La invitación ya no está vigente';
+    } on Exception {
+      return 'No se pudo aceptar la invitación. Revisa tu internet';
+    }
+  }
 
   /// 13. Trae las granjas que esperan la confirmación del administrador técnico.
   Future<List<Granja>> porConfirmar() async {

@@ -47,13 +47,14 @@ const tablasEquipo = <String, Object>{
   ],
 };
 
-/// 1. Prepara Supabase simulado: responde [tablas] por nombre y anota los pedidos en [pedidos].
+/// 1. Prepara Supabase simulado: responde [tablas] por nombre, anota los pedidos en [pedidos] y hace fallar la función [rpcQueFalla].
 void simularDatos(
   Map<String, Object> tablas, {
   List<http.BaseRequest>? pedidos,
   bool sinRed = false,
   String? errorAlGuardar,
   bool correoFalla = false,
+  String? rpcQueFalla,
 }) {
   Granjas.instance.cliente = SupabaseClient(
     'https://prueba.supabase.co',
@@ -67,8 +68,17 @@ void simularDatos(
         return http.Response(jsonEncode({'code': errorAlGuardar, 'message': 'error'}), 409, request: pedido);
       }
       final nombre = pedido.url.pathSegments.last;
+      if (nombre == rpcQueFalla) {
+        return http.Response(jsonEncode({'code': 'P0001', 'message': 'error'}), 400, request: pedido);
+      }
       if (nombre == 'dynamic-action') {
-        return http.Response(correoFalla ? 'error' : 'ok', correoFalla ? 502 : 200, request: pedido);
+        if (!correoFalla) return http.Response('ok', 200, request: pedido);
+        return http.Response.bytes(
+          utf8.encode(jsonEncode({'error': 'El envío de correos no está configurado'})),
+          500,
+          request: pedido,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
       }
       if (nombre == 'invitaciones' && pedido.method == 'POST') {
         return http.Response(jsonEncode({'id': 'nueva'}), 201, request: pedido);
