@@ -1,13 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../models/animal.dart';
 import '../models/granja.dart';
 import '../models/miembro.dart';
 import 'sesion.dart';
 
 typedef Vinculo = ({Granja granja, RolMiembro rol});
-typedef Resumen = ({int animales, int avisos, int miembros});
+typedef Resumen = ({int miembros, int pendientes});
 
 /// 1. Da un único acceso a los datos de las granjas (Singleton) y esconde las consultas de Supabase detrás de métodos simples (Facade).
 class Granjas {
@@ -28,14 +27,17 @@ class Granjas {
     return cliente;
   }
 
-  /// 3. Recuerda la granja con la que trabaja la persona en esta sesión.
-  late Granja actual;
+  /// 3. Recuerda la granja con la que trabaja la persona en esta sesión y su rol en ella.
+  Granja? _actual;
+  Granja get actual => _actual!;
   RolMiembro rol = RolMiembro.trabajador;
 
   void seleccionar(Vinculo vinculo) {
-    actual = vinculo.granja;
+    _actual = vinculo.granja;
     rol = vinculo.rol;
   }
+
+  bool esActual(Granja granja) => _actual?.id == granja.id;
 
   /// Consulta la función existente: solo reconoce administradores con cuenta activa.
   Future<bool> esAdministrador() async => await _db.rpc('es_administrador') == true;
@@ -56,27 +58,10 @@ class Granjas {
     ];
   }
 
-  /// 5. Cuenta los animales activos, los avisos de los próximos 7 días y los miembros de la granja actual.
+  /// 5. Cuenta los miembros activos y las invitaciones pendientes de la granja actual.
   Future<Resumen> resumen() async {
-    final limite = DateTime.now().add(const Duration(days: 7)).toIso8601String().substring(0, 10);
-    final id = actual.id;
-    final resultados = await Future.wait([
-      _db.from('fichas_bovinas').select('id').eq('granja_id', id).isFilter('fecha_baja', null),
-      _db
-          .from('prevenciones')
-          .select('id, fichas_bovinas!inner(granja_id, fecha_baja)')
-          .eq('fichas_bovinas.granja_id', id)
-          .isFilter('fichas_bovinas.fecha_baja', null)
-          .eq('estado', 'pendiente')
-          .lte('fecha_programada', limite),
-      _db.from('vinculaciones').select('id').eq('granja_id', id).eq('activa', true),
-      _db.from('invitaciones').select('id').eq('granja_id', id).eq('vigente', true).eq('aceptada', false),
-    ]);
-    return (
-      animales: resultados[0].length,
-      avisos: resultados[1].length,
-      miembros: resultados[2].length + resultados[3].length,
-    );
+    final (miembros, pendientes) = await (this.miembros(), invitaciones()).wait;
+    return (miembros: miembros.length, pendientes: pendientes.length);
   }
 
   /// 6. Trae los miembros activos de la granja actual.
@@ -118,32 +103,7 @@ class Granjas {
     }
   }
 
-  /// 9. Trae los animales activos de la granja actual.
-  Future<List<Animal>> animalesActivos() async {
-    final filas = await _db
-        .from('fichas_bovinas')
-        .select('id, nombre, identificacion, etapa, raza')
-        .eq('granja_id', actual.id)
-        .isFilter('fecha_baja', null)
-        .order('identificacion');
-    return filas.map(Animal.fromMap).toList();
-  }
-
-  /// 10. Registra la baja del animal; devuelve null o el mensaje de error.
-  Future<String?> darDeBaja(Animal animal, DateTime fecha, String motivo) async {
-    try {
-      await _db
-          .from('fichas_bovinas')
-          .update({'fecha_baja': fecha.toIso8601String().substring(0, 10), 'motivo_baja': motivo}).eq('id', animal.id);
-      return null;
-    } on PostgrestException {
-      return 'No se pudo registrar la baja';
-    } on Exception {
-      return 'No se pudo conectar. Revisa tu internet';
-    }
-  }
-
-  /// 11. Guarda la invitación y envía el correo; devuelve el error o si el correo salió.
+  /// 9. Guarda la invitación y envía el correo; devuelve el error o si el correo salió.
   Future<({String? error, bool correoEnviado})> invitar(String correo, RolMiembro rol) async {
     final limpio = correo.trim().toLowerCase();
     try {
@@ -167,7 +127,7 @@ class Granjas {
     }
   }
 
-  /// 12. Pide a la función de Supabase enviar el correo de una invitación con Mailgun.
+  /// 10. Pide a la función de Supabase enviar el correo de una invitación con Mailgun.
   Future<bool> enviarCorreo(String invitacionId) async {
     try {
       await _db.functions.invoke('dynamic-action', body: {'invitacion_id': invitacionId});
@@ -177,14 +137,32 @@ class Granjas {
     }
   }
 
-  /// 13. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
+  /// 11. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
   Future<List<Invitacion>> misInvitaciones() async {
     final correo = (Sesion.instance.usuario ?? '').toLowerCase();
     final filas = await _db.from('invitaciones').select().eq('vigente', true).eq('aceptada', false);
     return filas.map(Invitacion.fromMap).where((i) => i.correo.toLowerCase() == correo).toList();
   }
 
-  /// 14. Acepta una invitación y vincula la cuenta a su granja.
+  /// 12. Acepta una invitación y vincula la cuenta a su granja.
   Future<void> aceptarInvitacion(Invitacion invitacion) =>
       _db.rpc('aceptar_invitacion', params: {'p_invitacion': invitacion.id});
+
+  /// 13. Trae las granjas que esperan la confirmación del administrador técnico.
+  Future<List<Granja>> porConfirmar() async {
+    final filas = await _db.from('granjas').select().eq('confirmada', false).order('nombre');
+    return [for (final fila in filas) Granja.fromMap(fila, dueno: '')];
+  }
+
+  /// 14. Confirma una granja en revisión; devuelve null o el mensaje de error.
+  Future<String?> confirmar(Granja granja) async {
+    try {
+      await _db.rpc('confirmar_granja', params: {'p_granja': granja.id});
+      return null;
+    } on PostgrestException {
+      return 'No se pudo confirmar la granja';
+    } on Exception {
+      return 'No se pudo conectar. Revisa tu internet';
+    }
+  }
 }

@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../logic/granjas.dart';
 import '../../logic/sesion.dart';
-import '../../models/miembro.dart';
 import '../administrador/administracion_screen.dart';
-import '../trabajador/cuidados_hoy_screen.dart';
-import '../veterinario/seguimiento_veterinario_screen.dart';
 import '../../widgets/vetlink.dart';
 import '../../widgets/pantalla.dart';
+import '../inicio_por_rol.dart';
 import 'crear_cuenta_screen.dart';
-import '../dueno_granja/granja_revision_screen.dart';
-import '../dueno_granja/mi_granja_screen.dart';
 import 'recuperar_screen.dart';
 import '../dueno_granja/registrar_granja_screen.dart';
+import 'seleccionar_granja_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,46 +51,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _entrar() async {
     try {
-      // El administrador técnico no necesita pertenecer a una granja.
+      // 1. El administrador técnico no necesita pertenecer a una granja.
       final administrador = await Granjas.instance.esAdministrador();
       if (!mounted) return;
       if (administrador) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const AdministracionScreen(
-          granja: 'Todas las granjas',
-          pendientes: null,
-        )));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AdministracionScreen()));
         return;
       }
 
-      // 1. Pregunta por las invitaciones pendientes de la cuenta.
+      // 2. Pregunta por las invitaciones pendientes de la cuenta.
       await _atenderInvitaciones();
 
-      // 2. Busca las granjas de la cuenta.
+      // 3. Busca las granjas de la cuenta.
       final vinculos = await Granjas.instance.misVinculos();
       if (!mounted) return;
 
-      // 3. Entra a la primera granja confirmada.
-      final confirmado = vinculos.where((v) => v.granja.confirmada).firstOrNull;
-      if (confirmado != null) {
-        Granjas.instance.seleccionar(confirmado);
-        final pantalla = switch (confirmado.rol) {
-          RolMiembro.dueno => const MiGranjaScreen(),
-          RolMiembro.veterinario => SeguimientoVeterinarioScreen(granja: confirmado.granja.nombre),
-          RolMiembro.trabajador => CuidadosHoyScreen(granja: confirmado.granja.nombre),
-        };
-        Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
+      // 4. Avisa si la cuenta todavía no tiene granjas.
+      if (vinculos.isEmpty) {
+        avisar(context, 'Tu cuenta todavía no tiene una granja');
         return;
       }
 
-      // 4. Si ninguna está confirmada, muestra la que sigue en revisión.
-      if (vinculos.isNotEmpty) {
-        final granja = vinculos.first.granja;
-        Navigator.push(context, MaterialPageRoute(builder: (_) => GranjaRevisionScreen(granja: granja)));
+      // 5. Con varias granjas confirmadas pide elegir una; con una sola entra directo y, si ninguna está confirmada, muestra la revisión.
+      final confirmados = vinculos.where((v) => v.granja.confirmada).toList();
+      if (confirmados.length > 1) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => SeleccionarGranjaScreen(vinculos: vinculos)));
         return;
       }
-
-      // 5. Avisa si la cuenta todavía no tiene granjas.
-      avisar(context, 'Tu cuenta todavía no tiene una granja');
+      InicioPorRol.entrar(context, confirmados.firstOrNull ?? vinculos.first);
     } on Exception {
       if (mounted) avisar(context, 'No se pudieron cargar tus granjas. Intenta de nuevo');
     }

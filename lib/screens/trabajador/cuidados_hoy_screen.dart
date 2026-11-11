@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/campos_granja.dart';
 import '../../widgets/panel_rol.dart';
 
 class CuidadosHoyScreen extends StatelessWidget {
@@ -16,22 +17,11 @@ class CuidadosHoyScreen extends StatelessWidget {
     rol: 'Trabajador',
     granja: granja,
     alCerrarSesion: alCerrarSesion,
-    children: const [
-      OpcionPanel(
-        titulo: 'Ficha',
-        detalle: 'Registrar o actualizar los datos del animal.',
-      ),
-      OpcionPanel(
-        titulo: 'Observación',
-        detalle: 'Describir lo observado y el cuidado realizado.',
-      ),
-      OpcionPanel(
-        titulo: 'Aplicación',
-        detalle: 'Registrar la aplicación de una indicación.',
-      ),
-      OpcionPanel(
-        titulo: 'Consulta',
-        detalle: 'Buscar animales y consultar su seguimiento.',
+    children: [
+      AvisoRol(
+        titulo: 'Acceso como trabajador',
+        texto: 'Tu cuenta está vinculada a $granja con el rol que te asignó el dueño. '
+            'Si trabajás en otras granjas, elegilas en Mis granjas.',
       ),
     ],
   );

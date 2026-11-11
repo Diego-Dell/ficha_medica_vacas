@@ -8,14 +8,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
-import 'package:ficha_medica_vacas/screens/dueno_granja/dar_de_baja_screen.dart';
+import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/granja_revision_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/invitar_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/miembros_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/registrar_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/registrar_otra_granja_screen.dart';
-import 'package:ficha_medica_vacas/widgets/vetlink.dart';
 
 import 'apoyo.dart';
 
@@ -56,24 +55,7 @@ GoTrueClient cliente(MockClientHandler respuesta) => GoTrueClient(
 void main() {
   setUp(() {
     entrarALosPinos();
-    simularDatos({
-      'fichas_bovinas': [
-        {'id': 'f1'},
-        {'id': 'f2'},
-      ],
-      'prevenciones': [
-        {'id': 'p1'},
-      ],
-      'vinculaciones': [
-        {'id': 'v1'},
-        {'id': 'v2'},
-        {'id': 'v3'},
-      ],
-      'invitaciones': [
-        {'id': 'i1'},
-        {'id': 'i2'},
-      ],
-    });
+    simularDatos(tablasEquipo);
   });
 
   testWidgets('Registrar mi granja valida, envía los datos y pasa a revisión', (tester) async {
@@ -120,8 +102,7 @@ void main() {
     await abrir(tester, const MiGranjaScreen());
     expect(find.text('Trabajador'), findsOneWidget);
     expect(find.text('Miembros del equipo  ›'), findsNothing);
-    expect(find.text('Dar de baja un animal  ›'), findsNothing);
-    expect(find.text('Ganado e historial  ›'), findsOneWidget);
+    expect(find.text('Registrar otra granja'), findsOneWidget);
   });
 
   testWidgets('Mi granja permite reintentar si no carga', (tester) async {
@@ -129,29 +110,24 @@ void main() {
     await abrir(tester, const MiGranjaScreen());
     await tester.pump(const Duration(minutes: 1));
     await tester.pumpAndSettle();
-    expect(find.text('–'), findsNWidgets(3));
-    simularDatos({
-      'fichas_bovinas': [
-        {'id': 'f1'},
-      ],
-    });
+    expect(find.text('–'), findsNWidgets(2));
+    simularDatos(tablasEquipo);
     await tocar(tester, 'No se pudieron cargar los datos. Reintentar');
+    expect(find.text('3'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
   });
 
-  testWidgets('Mi granja muestra los datos y las opciones', (tester) async {
+  testWidgets('Mi granja muestra el equipo y solo opciones del Sprint 1', (tester) async {
     await abrir(tester, const MiGranjaScreen());
-    expect(find.text('2'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
-    expect(find.text('5'), findsOneWidget);
-    for (final opcion in ['Ganado e historial', 'Reportes sanitarios', 'Dar de baja un animal']) {
-      expect(find.text('$opcion  ›'), findsOneWidget);
+    expect(find.text('Miembros del equipo  ›'), findsOneWidget);
+    expect(find.text('Registrar otra granja'), findsOneWidget);
+    expect(find.text('Cerrar sesión'), findsOneWidget);
+    expect(find.text('Mis granjas'), findsOneWidget);
+    for (final fuera in ['Ganado e historial  ›', 'Reportes sanitarios  ›', 'Dar de baja un animal  ›', 'Avisos', 'Reportes']) {
+      expect(find.text(fuera), findsNothing);
     }
-    await tocar(tester, 'Ganado e historial  ›');
-    expect(find.text('Ganado e historial estará disponible pronto'), findsOneWidget);
-    await tester.tap(find.descendant(of: find.byType(BarraVetLink), matching: find.text('Avisos')));
-    await tester.pumpAndSettle();
-    expect(find.text('Avisos estará disponible pronto'), findsOneWidget);
   });
 
   testWidgets('Miembros muestra el equipo y la invitación pendiente', (tester) async {
@@ -280,63 +256,50 @@ void main() {
     });
   });
 
-  const lucera = {'id': 'f1', 'nombre': 'Lucera', 'identificacion': '0842', 'etapa': 'vaca', 'raza': 'Holstein'};
-  const rosa = {'id': 'f2', 'nombre': null, 'identificacion': '0900', 'etapa': 'vaquilla', 'raza': null};
+  final santaRosa = {...filaLosPinos, 'id': 'g2', 'nombre': 'Santa Rosa', 'hectareas': 12.5, 'confirmada': false};
 
-  testWidgets('Dar de baja pide el motivo y guarda la baja en Supabase', (tester) async {
+  testWidgets('Administración lista las granjas en revisión y confirma una', (tester) async {
     final pedidos = <http.BaseRequest>[];
     simularDatos({
-      'fichas_bovinas': const [lucera],
+      'granjas': [santaRosa],
     }, pedidos: pedidos);
-    await abrir(tester, const MiGranjaScreen());
-    await tocar(tester, 'Dar de baja un animal  ›');
-    expect(find.text('Lucera · 0842'), findsOneWidget);
-    expect(find.text('Vaca · Holstein · Los Pinos'), findsOneWidget);
-    await tocar(tester, 'Confirmar baja');
-    expect(find.text('Campo obligatorio'), findsOneWidget);
-    expect(pedidos.where((p) => p.method == 'PATCH'), isEmpty);
+    await abrir(tester, const AdministracionScreen());
+    expect(find.text('1 granja por confirmar'), findsOneWidget);
+    expect(find.text('RUNSA: SC-02418'), findsOneWidget);
+    expect(find.text('Superficie: 12.50 ha'), findsOneWidget);
+    expect(find.text('Documentación: terreno.pdf'), findsOneWidget);
+    expect(find.text('Mis granjas'), findsNothing);
+    final lista = pedidos.singleWhere((p) => p.url.pathSegments.last == 'granjas');
+    expect(lista.url.queryParameters['confirmada'], 'eq.false');
 
-    await tester.enterText(find.byType(TextFormField), 'Venta del animal');
-    await tocar(tester, 'Confirmar baja');
-    final baja = pedidos.singleWhere((p) => p.method == 'PATCH') as http.Request;
-    expect(baja.url.queryParameters['id'], 'eq.f1');
-    final datos = jsonDecode(baja.body) as Map<String, dynamic>;
-    expect(datos['motivo_baja'], 'Venta del animal');
-    expect(datos['fecha_baja'], matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')));
-    expect(find.text('Mi granja'), findsOneWidget);
-    expect(find.text('Lucera · 0842 se dio de baja. Su ficha y su historial se conservan'), findsOneWidget);
+    simularDatos({'granjas': const <Object>[]}, pedidos: pedidos);
+    await tocar(tester, 'Confirmar granja');
+    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('confirmar_granja')) as http.Request;
+    expect(jsonDecode(rpc.body), {'p_granja': 'g2'});
+    expect(find.text('Santa Rosa quedó confirmada'), findsOneWidget);
+    expect(find.text('0 granjas por confirmar'), findsOneWidget);
+    expect(find.text('No hay solicitudes pendientes.'), findsOneWidget);
   });
 
-  testWidgets('Dar de baja permite elegir entre varios animales', (tester) async {
-    final pedidos = <http.BaseRequest>[];
+  testWidgets('Administración avisa si no puede confirmar o cargar', (tester) async {
     simularDatos({
-      'fichas_bovinas': const [lucera, rosa],
-    }, pedidos: pedidos);
-    await abrir(tester, const DarDeBajaScreen());
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('0900').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Vaquilla · Los Pinos'), findsOneWidget);
-    await tester.enterText(find.byType(TextFormField), 'Muerte');
-    await tocar(tester, 'Confirmar baja');
-    expect(pedidos.singleWhere((p) => p.method == 'PATCH').url.queryParameters['id'], 'eq.f2');
-  });
-
-  testWidgets('Dar de baja avisa si no hay animales o si falla', (tester) async {
-    simularDatos({'fichas_bovinas': const <Object>[]});
-    await abrir(tester, const DarDeBajaScreen());
-    expect(find.text('No hay animales para dar de baja.'), findsOneWidget);
-
-    simularDatos({
-      'fichas_bovinas': const [lucera],
+      'granjas': [santaRosa],
     }, errorAlGuardar: '42501');
+    await abrir(tester, const AdministracionScreen());
+    await tocar(tester, 'Confirmar granja');
+    expect(find.text('No se pudo confirmar la granja'), findsOneWidget);
+    expect(find.text('1 granja por confirmar'), findsOneWidget);
+
+    simularDatos(const {}, sinRed: true);
     await abrir(tester, const SizedBox());
-    await abrir(tester, const DarDeBajaScreen());
-    await tester.enterText(find.byType(TextFormField), 'Venta');
-    await tocar(tester, 'Confirmar baja');
-    expect(find.text('No se pudo registrar la baja'), findsOneWidget);
-    expect(find.text('Dar de baja'), findsOneWidget);
+    await abrir(tester, const AdministracionScreen());
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    simularDatos({
+      'granjas': [santaRosa],
+    });
+    await tocar(tester, 'No se pudieron cargar las granjas. Reintentar');
+    expect(find.text('Santa Rosa'), findsOneWidget);
   });
 
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {
