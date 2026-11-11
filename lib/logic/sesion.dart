@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,6 +14,9 @@ class Sesion {
   // 2. Lee la URL y la clave pública de config.json al compilar.
   static const _url = String.fromEnvironment('SUPABASE_URL');
   static const _clavePublica = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+
+  /// Enlace que abre la app desde el correo de recuperación; debe estar en Redirect URLs de Supabase.
+  static const enlaceRecuperacion = 'vetlink://restablecer';
 
   GoTrueClient? _auth;
 
@@ -40,7 +45,7 @@ class Sesion {
     final auth = _auth;
     if (auth == null) return 'La app no está configurada';
     try {
-      await auth.resetPasswordForEmail(correo.trim());
+      await auth.resetPasswordForEmail(correo.trim(), redirectTo: enlaceRecuperacion);
       return null;
     } on AuthRetryableFetchException {
       return 'No se pudo conectar. Revisa tu internet';
@@ -97,6 +102,38 @@ class Sesion {
         'email_not_confirmed' => 'Falta confirmar el correo',
         _ => 'No se pudo iniciar sesión',
       };
+    }
+  }
+
+  /// 9. Avisa cuando la app se abre desde el enlace de recuperación (patrón Observer).
+  StreamSubscription<AuthState>? alRecuperar(VoidCallback accion) =>
+      _auth?.onAuthStateChange.where((estado) => estado.event == AuthChangeEvent.passwordRecovery).listen((_) => accion());
+
+  /// 10. Guarda la nueva contraseña de la sesión abierta por el enlace; devuelve null o el mensaje de error.
+  Future<String?> cambiarContrasena(String contrasena) async {
+    final auth = _auth;
+    if (auth == null) return 'La app no está configurada';
+    try {
+      await auth.updateUser(UserAttributes(password: contrasena));
+      return null;
+    } on AuthRetryableFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on AuthException catch (e) {
+      return switch (e.code) {
+        'same_password' => 'La nueva contraseña debe ser distinta de la anterior',
+        'weak_password' => 'La contraseña es muy débil',
+        'session_not_found' || 'session_expired' => 'El enlace venció. Pedí uno nuevo',
+        _ => 'No se pudo guardar la contraseña',
+      };
+    }
+  }
+
+  /// 11. Cierra la sesión; si no hay conexión, igual la olvida en este dispositivo.
+  Future<void> cerrar() async {
+    try {
+      await _auth?.signOut();
+    } on Exception {
+      return;
     }
   }
 }

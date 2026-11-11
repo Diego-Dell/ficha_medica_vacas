@@ -6,8 +6,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/main.dart';
+import 'package:ficha_medica_vacas/models/miembro.dart';
+import 'package:ficha_medica_vacas/screens/acceso_general/nueva_contrasena_screen.dart';
+import 'package:ficha_medica_vacas/screens/acceso_general/seleccionar_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/trabajador/cuidados_hoy_screen.dart';
@@ -99,8 +103,10 @@ void main() {
 
   testWidgets('recuperar acceso envía el correo y permite volver', (tester) async {
     late Map<String, dynamic> enviado;
+    late Uri enlace;
     Sesion.instance.auth = cliente((pedido) async {
       enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
+      enlace = pedido.url;
       return http.Response('{}', 200, headers: {'content-type': 'application/json'});
     });
     await tester.pumpWidget(const FichaMedicaApp());
@@ -114,6 +120,7 @@ void main() {
     await tocar(tester, 'Enviar enlace');
     await tester.pumpAndSettle();
     expect(enviado['email'], correo);
+    expect(enlace.queryParameters['redirect_to'], 'vetlink://restablecer');
     expect(find.text('Si el correo tiene una cuenta, te enviamos el enlace'), findsOneWidget);
     await tocar(tester, '‹ Volver');
     await tester.pumpAndSettle();
@@ -197,7 +204,7 @@ void main() {
     await ingresar(tester, 'clave');
     expect(enviado['email'], correo);
     expect(find.text('Mi granja'), findsOneWidget);
-    expect(find.text('$correo · Así va el cuidado en Los Pinos.'), findsOneWidget);
+    expect(find.text('$correo · Así está el equipo de Los Pinos.'), findsOneWidget);
     expect(Sesion.instance.iniciada, isTrue);
   });
 
@@ -242,13 +249,18 @@ void main() {
   testWidgets('el administrador entra sin granja y sin aceptar invitaciones', (tester) async {
     Sesion.instance.auth = cliente((_) async => sesionValida());
     final pedidos = <http.BaseRequest>[];
-    simularDatos({'es_administrador': true}, pedidos: pedidos);
+    simularDatos({
+      'es_administrador': true,
+      'granjas': [
+        {...filaLosPinos, 'confirmada': false},
+      ],
+    }, pedidos: pedidos);
     await ingresar(tester, 'clave');
     expect(find.byType(AdministracionScreen), findsOneWidget);
     expect(find.byType(MiGranjaScreen), findsNothing);
     expect(find.text('Tu cuenta todavía no tiene una granja'), findsNothing);
-    expect(pedidos.map((p) => p.url.pathSegments.last), ['es_administrador']);
-    expect(find.text('0 granjas por confirmar'), findsNothing);
+    expect(pedidos.map((p) => p.url.pathSegments.last), ['es_administrador', 'granjas']);
+    expect(find.text('1 granja por confirmar'), findsOneWidget);
   });
 
   testWidgets('si no se puede verificar el rol no abre ningún panel', (tester) async {
@@ -314,5 +326,125 @@ void main() {
     simularDatos(const {}, sinRed: true);
     await ingresar(tester, 'clave');
     expect(find.text('No se pudieron cargar tus granjas. Intenta de nuevo'), findsOneWidget);
+  });
+
+  testWidgets('con varias granjas pide elegir y al cambiar recupera el rol de cada una', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    const cuenta = {'nombre': 'Ana Pérez', 'identificador': correo};
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'veterinario', 'granjas': {...filaLosPinos, 'id': 'g2', 'nombre': 'Santa Rosa'}, 'cuentas': cuenta},
+        {'rol': 'dueno', 'granjas': filaLosPinos, 'cuentas': cuenta},
+        {'rol': 'trabajador', 'granjas': {...filaLosPinos, 'id': 'g3', 'nombre': 'El Ceibo', 'confirmada': false}, 'cuentas': cuenta},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(SeleccionarGranjaScreen), findsOneWidget);
+    expect(find.text('Veterinario · Confirmada'), findsOneWidget);
+    expect(find.textContaining('Dueño · '), findsOneWidget);
+    expect(find.text('Trabajador · En revisión'), findsOneWidget);
+
+    await tocar(tester, 'Santa Rosa');
+    await tester.pumpAndSettle();
+    expect(tester.widget<SeguimientoVeterinarioScreen>(find.byType(SeguimientoVeterinarioScreen)).granja, 'Santa Rosa');
+    expect(Granjas.instance.rol, RolMiembro.veterinario);
+
+    await tocar(tester, 'Mis granjas');
+    await tester.pumpAndSettle();
+    expect(find.text('Veterinario · Granja actual'), findsOneWidget);
+    await tocar(tester, 'Los Pinos');
+    await tester.pumpAndSettle();
+    expect(find.byType(MiGranjaScreen), findsOneWidget);
+    expect(Granjas.instance.rol, RolMiembro.dueno);
+    expect(find.text('Miembros del equipo  ›'), findsOneWidget);
+    expect(find.byType(SeguimientoVeterinarioScreen), findsNothing);
+    expect(find.byType(SeleccionarGranjaScreen), findsNothing);
+  });
+
+  testWidgets('cerrar sesión cierra la sesión en Supabase y vuelve al login', (tester) async {
+    final rutas = <String>[];
+    Sesion.instance.auth = cliente((pedido) async {
+      rutas.add(pedido.url.path);
+      return pedido.url.path.endsWith('logout') ? http.Response('', 204) : sesionValida();
+    });
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+    await tocar(tester, 'Cerrar sesión');
+    await tester.pumpAndSettle();
+    expect(rutas.where((ruta) => ruta.endsWith('logout')), hasLength(1));
+    expect(Sesion.instance.iniciada, isFalse);
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
+  // 4. Abre Nueva contraseña con una sesión iniciada, como si llegara desde el enlace del correo.
+  Future<List<http.Request>> abrirNuevaContrasena(WidgetTester tester, {String? errorAlGuardar}) async {
+    final pedidos = <http.Request>[];
+    Sesion.instance.auth = cliente((pedido) async {
+      pedidos.add(pedido);
+      if (pedido.url.path.endsWith('logout')) return http.Response('', 204);
+      if (pedido.method == 'PUT') {
+        if (errorAlGuardar != null) return error(422, errorAlGuardar);
+        return http.Response(
+          jsonEncode((jsonDecode(sesionValida().body) as Map<String, dynamic>)['user']),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return sesionValida();
+    });
+    await tester.runAsync(() => Sesion.instance.iniciar(correo, 'vieja'));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NuevaContrasenaScreen())),
+              child: const Text('inicio'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('inicio'));
+    await tester.pumpAndSettle();
+    return pedidos;
+  }
+
+  testWidgets('Nueva contraseña valida, guarda la clave y vuelve al login', (tester) async {
+    final pedidos = await abrirNuevaContrasena(tester);
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pump();
+    expect(find.text('Campo obligatorio'), findsNWidgets(2));
+    await tester.enterText(find.byType(TextFormField).first, 'abcdefgh');
+    await tester.enterText(find.byType(TextFormField).last, 'distinta');
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pump();
+    expect(find.text('Las contraseñas no coinciden'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).last, 'abcdefgh');
+    await tester.tap(find.byTooltip('Mostrar contraseña'));
+    await tester.pump();
+    expect(tester.widget<TextField>(find.byType(TextField).first).obscureText, isFalse);
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pumpAndSettle();
+    final guardado = pedidos.singleWhere((p) => p.method == 'PUT');
+    expect((jsonDecode(guardado.body) as Map<String, dynamic>)['password'], 'abcdefgh');
+    expect(pedidos.where((p) => p.url.path.endsWith('logout')), hasLength(1));
+    expect(find.text('Tu contraseña se actualizó. Iniciá sesión con la nueva'), findsOneWidget);
+    expect(find.text('inicio'), findsOneWidget);
+  });
+
+  testWidgets('Nueva contraseña avisa si es igual a la anterior', (tester) async {
+    await abrirNuevaContrasena(tester, errorAlGuardar: 'same_password');
+    await tester.enterText(find.byType(TextFormField).first, 'abcdefgh');
+    await tester.enterText(find.byType(TextFormField).last, 'abcdefgh');
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pumpAndSettle();
+    expect(find.text('La nueva contraseña debe ser distinta de la anterior'), findsOneWidget);
+    expect(find.byType(NuevaContrasenaScreen), findsOneWidget);
   });
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../logic/sesion.dart';
 import '../../widgets/pantalla.dart';
 import '../../widgets/vetlink.dart';
 
-/// Formulario listo para conectar al enlace de recuperación; no cambia cuentas.
+/// Se abre desde el enlace del correo de recuperación y guarda la nueva contraseña.
 class NuevaContrasenaScreen extends StatefulWidget {
   const NuevaContrasenaScreen({super.key});
 
@@ -16,6 +17,7 @@ class _NuevaContrasenaScreenState extends State<NuevaContrasenaScreen> {
   final _clave = TextEditingController();
   final _confirmacion = TextEditingController();
   bool _mostrar = false;
+  bool _enviando = false;
 
   @override
   void dispose() {
@@ -24,13 +26,26 @@ class _NuevaContrasenaScreenState extends State<NuevaContrasenaScreen> {
     super.dispose();
   }
 
-  void _guardar() {
-    if (!_form.currentState!.validate()) return;
+  Future<void> _guardar() async {
+    // 1. Valida el formulario y evita envíos dobles.
+    if (_enviando || !_form.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
-    avisar(
-      context,
-      'Las contraseñas coinciden. El guardado aún no está conectado.',
-    );
+    setState(() => _enviando = true);
+
+    // 2. Guarda la contraseña en la sesión que abrió el enlace.
+    final error = await Sesion.instance.cambiarContrasena(_clave.text);
+    if (!mounted) return;
+    setState(() => _enviando = false);
+
+    // 3. Muestra el error o cierra la sesión del enlace y vuelve al login.
+    if (error != null) {
+      avisar(context, error);
+      return;
+    }
+    await Sesion.instance.cerrar();
+    if (!mounted) return;
+    avisar(context, 'Tu contraseña se actualizó. Iniciá sesión con la nueva');
+    Navigator.popUntil(context, (ruta) => ruta.isFirst);
   }
 
   @override
@@ -93,7 +108,10 @@ class _NuevaContrasenaScreenState extends State<NuevaContrasenaScreen> {
         style: TextStyle(color: colorTextoSuave, fontSize: 12),
       ),
       const SizedBox(height: 24),
-      BotonPrincipal(texto: 'Guardar contraseña', alPresionar: _guardar),
+      BotonPrincipal(
+        texto: _enviando ? 'Guardando...' : 'Guardar contraseña',
+        alPresionar: _enviando ? null : _guardar,
+      ),
       BotonSecundario(
         texto: 'Volver al login',
         alPresionar: () => Navigator.popUntil(context, (ruta) => ruta.isFirst),
