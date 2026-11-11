@@ -1,8 +1,0 @@
-node_modules
-.env
-.env.*
-*.sqlite
-*.sqlite-*
-*.test.js
-npm-debug.log
-.git

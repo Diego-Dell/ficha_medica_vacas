@@ -1,3 +1,4 @@
 {
-  "API_URL": "http://localhost:3001"
+  "SUPABASE_URL": "https://TU_PROYECTO.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "TU_CLAVE_PUBLICA"
 }

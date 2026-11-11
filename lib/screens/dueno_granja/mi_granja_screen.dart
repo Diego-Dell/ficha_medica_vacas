@@ -22,7 +22,7 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
   /// 1. Avisa que una opción todavía no está disponible.
   void _pronto(String funcion) => avisar(context, '$funcion estará disponible pronto');
 
-  /// 2. Vuelve a pedir los datos al servidor.
+  /// 2. Vuelve a pedir los datos a Supabase.
   void _recargar() {
     setState(() {
       _resumen = Granjas.instance.resumen();

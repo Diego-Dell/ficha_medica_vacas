@@ -1,142 +1,58 @@
-import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/granja.dart';
-import 'api.dart';
+import 'granjas.dart';
 
-<<<<<<< HEAD
 /// 1. Comparte una sola sesión en toda la app (Singleton) y esconde los detalles de Supabase Auth detrás de métodos simples (Facade).
-=======
->>>>>>> bb40139 (feat: integrar backend propio y flujos de acceso VetLink)
 class Sesion {
   Sesion._();
   static final instance = Sesion._();
 
-  static const _url = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'http://localhost:3001',
-  );
-  static const _claveToken = 'vetlink.session.token';
-  static const _claveId = 'vetlink.session.id';
-  static const _claveCorreo = 'vetlink.session.email';
-  static const _claveNombre = 'vetlink.session.name';
+  // 2. Lee la URL y la clave pública de config.json al compilar.
+  static const _url = String.fromEnvironment('SUPABASE_URL');
+  static const _clavePublica = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
-  Api _api = Api(url: _url);
-  SharedPreferences? _preferencias;
-  String? _id;
-  String? _usuario;
-  String? _nombre;
-  String? _token;
+  GoTrueClient? _auth;
 
-  Api get api => _api;
-  @visibleForTesting
-  set api(Api value) => _api = value;
-
-  String? get id => _id;
-  String? get usuario => _usuario;
-  String get nombre => _nombre ?? _usuario ?? '';
-  String? get token => _token;
-  bool get iniciada => _token != null;
-
+  /// 3. Conecta con Supabase; sin configuración nadie puede iniciar sesión.
   Future<void> inicializar() async {
-    _preferencias = await SharedPreferences.getInstance();
-    _token = _preferencias!.getString(_claveToken);
-    _id = _preferencias!.getString(_claveId);
-    _usuario = _preferencias!.getString(_claveCorreo);
-    _nombre = _preferencias!.getString(_claveNombre);
-    _api.token = _token;
+    if (_url.isEmpty || _clavePublica.isEmpty) return;
+    await Supabase.initialize(url: _url, publishableKey: _clavePublica);
+    _auth = Supabase.instance.client.auth;
+    Granjas.instance.conectar(Supabase.instance.client);
   }
 
-  Future<String?> iniciar(String correo, String contrasena) async {
-    try {
-      final respuesta = await _api.pedir(
-        '/auth/login',
-        metodo: 'POST',
-        datos: {'email': correo.trim(), 'password': contrasena},
-      ) as Map<String, dynamic>;
-      final usuario = respuesta['user'] as Map<String, dynamic>;
-      _token = respuesta['access_token'] as String;
-      _id = usuario['id'] as String;
-      _usuario = usuario['email'] as String;
-      _nombre = usuario['nombre'] as String?;
-      _api.token = _token;
-      await _guardarSesion();
-      return null;
-    } on ApiException catch (error) {
-      return error.mensaje;
-    } catch (_) {
-      return 'No se pudo conectar al servidor. Revisa tu internet';
-    }
-  }
+  @visibleForTesting
+  set auth(GoTrueClient cliente) => _auth = cliente;
 
-  Future<String?> cerrar() async {
-    try {
-      if (_token != null) {
-        await _api.pedir('/logout', metodo: 'POST', datos: const {});
-      }
-    } catch (_) {
-      // La sesión local se elimina aunque el servidor no esté disponible.
-    }
-    _token = null;
-    _id = null;
-    _usuario = null;
-    _nombre = null;
-    _api.token = null;
-    final preferencias = _preferencias ?? await SharedPreferences.getInstance();
-    await preferencias.remove(_claveToken);
-    await preferencias.remove(_claveId);
-    await preferencias.remove(_claveCorreo);
-    await preferencias.remove(_claveNombre);
-    return null;
-  }
+  String? get id => _auth?.currentUser?.id;
 
+  String? get usuario => _auth?.currentUser?.email;
+
+  /// 4. Devuelve el nombre registrado o, si no tiene, el correo.
+  String get nombre => _auth?.currentUser?.userMetadata?['nombre'] as String? ?? usuario ?? '';
+
+  bool get iniciada => _auth?.currentSession != null;
+
+  /// 5. Envía el enlace de recuperación; devuelve null o el mensaje de error.
   Future<String?> recuperar(String correo) async {
+    final auth = _auth;
+    if (auth == null) return 'La app no está configurada';
     try {
-      await _api.pedir(
-        '/auth/recuperar',
-        metodo: 'POST',
-        datos: {'email': correo.trim()},
-      );
+      await auth.resetPasswordForEmail(correo.trim());
       return null;
-    } on ApiException catch (error) {
-      return error.mensaje;
-    } catch (_) {
-      return 'No se pudo conectar al servidor. Revisa tu internet';
+    } on AuthRetryableFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on AuthException catch (e) {
+      return e.code == 'over_email_send_rate_limit'
+          ? 'Se enviaron demasiados correos. Intenta más tarde'
+          : 'No se pudo enviar el enlace';
     }
   }
 
-  Future<String?> confirmarCorreo(String token) async {
-    try {
-      await _api.pedir(
-        '/auth/confirmar',
-        metodo: 'POST',
-        datos: {'token': token},
-      );
-      return null;
-    } on ApiException catch (error) {
-      return error.mensaje;
-    } catch (_) {
-      return 'No se pudo confirmar el correo. Revisa tu internet';
-    }
-  }
-
-  Future<String?> restablecer(String token, String contrasena) async {
-    try {
-      await _api.pedir(
-        '/auth/restablecer',
-        metodo: 'POST',
-        datos: {'token': token, 'password': contrasena},
-      );
-      return null;
-    } on ApiException catch (error) {
-      return error.mensaje;
-    } catch (_) {
-      return 'No se pudo actualizar la contraseña. Revisa tu internet';
-    }
-  }
-
-  Future<String?> registrar(String correo, String contrasena, Granja granja) =>
-      _registrar(correo, contrasena, {
+  /// 6. Crea la cuenta del dueño con los datos de su granja; devuelve null o el mensaje de error.
+  Future<String?> registrar(String correo, String contrasena, Granja granja) => _crearCuenta(correo, contrasena, {
         'nombre': granja.dueno,
         'granja': granja.nombre,
         'superficie': granja.superficie,
@@ -144,38 +60,43 @@ class Sesion {
         'documento': granja.documento,
       });
 
-  Future<String?> crearCuentaInvitada(
-    String nombre,
-    String correo,
-    String contrasena,
-  ) => _registrar(correo, contrasena, {'nombre': nombre.trim()});
+  /// 7. Crea la cuenta de una persona invitada, sin granja propia; devuelve null o el mensaje de error.
+  Future<String?> crearCuentaInvitada(String nombre, String correo, String contrasena) =>
+      _crearCuenta(correo, contrasena, {'nombre': nombre.trim()});
 
-  Future<String?> _registrar(
-    String correo,
-    String contrasena,
-    Map<String, dynamic> datos,
-  ) async {
+  Future<String?> _crearCuenta(String correo, String contrasena, Map<String, dynamic> datos) async {
+    final auth = _auth;
+    if (auth == null) return 'La app no está configurada';
     try {
-      await _api.pedir(
-        '/auth/registro',
-        metodo: 'POST',
-        datos: {'email': correo.trim(), 'password': contrasena, 'data': datos},
-      );
+      await auth.signUp(email: correo.trim(), password: contrasena, data: datos);
       return null;
-    } on ApiException catch (error) {
-      return error.mensaje;
-    } catch (_) {
-      return 'No se pudo conectar al servidor. Revisa tu internet';
+    } on AuthRetryableFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on AuthException catch (e) {
+      return switch (e.code) {
+        'user_already_exists' || 'email_exists' => 'Ya existe una cuenta con ese correo',
+        'weak_password' => 'La contraseña es muy débil',
+        'over_email_send_rate_limit' => 'Se enviaron demasiados correos. Intenta más tarde',
+        _ => 'No se pudo completar el registro',
+      };
     }
   }
 
-  Future<void> _guardarSesion() async {
-    final preferencias = _preferencias ?? await SharedPreferences.getInstance();
-    _preferencias = preferencias;
-    await preferencias.setString(_claveToken, _token!);
-    await preferencias.setString(_claveId, _id!);
-    await preferencias.setString(_claveCorreo, _usuario!);
-    if (_nombre != null) await preferencias.setString(_claveNombre, _nombre!);
-    _api.token = _token;
+  /// 8. Inicia la sesión; devuelve null o el mensaje de error.
+  Future<String?> iniciar(String correo, String contrasena) async {
+    final auth = _auth;
+    if (auth == null) return 'La app no está configurada';
+    try {
+      await auth.signInWithPassword(email: correo.trim(), password: contrasena);
+      return null;
+    } on AuthRetryableFetchException {
+      return 'No se pudo conectar. Revisa tu internet';
+    } on AuthException catch (e) {
+      return switch (e.code) {
+        'invalid_credentials' => 'Correo o contraseña incorrectos',
+        'email_not_confirmed' => 'Falta confirmar el correo',
+        _ => 'No se pudo iniciar sesión',
+      };
+    }
   }
 }

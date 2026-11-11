@@ -1,7 +1,0 @@
-node_modules/
-.env
-.env.*
-*.sqlite
-*.sqlite-*
-npm-debug.log
-.git/
