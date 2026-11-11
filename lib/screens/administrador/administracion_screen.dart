@@ -4,6 +4,7 @@ import '../../logic/granjas.dart';
 import '../../models/granja.dart';
 import '../../widgets/panel_rol.dart';
 import '../../widgets/vetlink.dart';
+import 'confirmar_granja_screen.dart';
 
 class AdministracionScreen extends StatefulWidget {
   const AdministracionScreen({super.key, this.alCerrarSesion});
@@ -16,7 +17,6 @@ class AdministracionScreen extends StatefulWidget {
 
 class _AdministracionScreenState extends State<AdministracionScreen> {
   late Future<List<Granja>> _pendientes = Granjas.instance.porConfirmar();
-  String? _confirmando;
 
   /// 1. Vuelve a pedir las granjas en revisión.
   void _recargar() {
@@ -25,22 +25,13 @@ class _AdministracionScreenState extends State<AdministracionScreen> {
     });
   }
 
-  /// 2. Confirma la granja elegida para que su dueño pueda entrar e invitar al equipo.
-  Future<void> _confirmar(Granja granja) async {
-    // 2.1. Evita confirmar dos granjas a la vez.
-    if (_confirmando != null) return;
-    setState(() => _confirmando = granja.id);
-
-    // 2.2. Pide a Supabase confirmar la granja.
-    final error = await Granjas.instance.confirmar(granja);
-    if (!mounted) return;
-    setState(() => _confirmando = null);
-
-    // 2.3. Muestra el error o avisa el resultado y actualiza la lista.
-    if (error != null) {
-      avisar(context, error);
-      return;
-    }
+  /// 2. Abre la solicitud; si se confirmó, avisa y actualiza la lista.
+  Future<void> _revisar(Granja granja) async {
+    final confirmada = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => ConfirmarGranjaScreen(granja: granja)),
+    );
+    if (!mounted || confirmada != true) return;
     avisar(context, '${granja.nombre} quedó confirmada');
     _recargar();
   }
@@ -50,7 +41,7 @@ class _AdministracionScreenState extends State<AdministracionScreen> {
     final tema = Theme.of(context).textTheme;
     return PanelRol(
       titulo: 'Administración',
-      subtitulo: 'Revisá los datos y la documentación antes de confirmar cada granja.',
+      subtitulo: 'Revisá cada solicitud antes de confirmar la granja.',
       rol: 'Administrador técnico',
       granja: 'Todas las granjas',
       alCerrarSesion: widget.alCerrarSesion,
@@ -84,35 +75,10 @@ class _AdministracionScreenState extends State<AdministracionScreen> {
                 if (granjas.isEmpty)
                   Text('No hay solicitudes pendientes.', style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
                 for (final granja in granjas)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: colorBorde),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          granja.nombre,
-                          style: tema.titleSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 4),
-                        for (final dato in [
-                          'RUNSA: ${granja.runsa}',
-                          'Superficie: ${granja.superficie.toStringAsFixed(granja.superficie % 1 == 0 ? 0 : 2)} ha',
-                          'Documentación: ${granja.documento.isEmpty ? 'Sin archivo' : granja.documento}',
-                        ])
-                          Text(dato, style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
-                        const SizedBox(height: 10),
-                        BotonPrincipal(
-                          texto: _confirmando == granja.id ? 'Confirmando...' : 'Confirmar granja',
-                          alPresionar: _confirmando == null ? () => _confirmar(granja) : null,
-                        ),
-                      ],
-                    ),
+                  OpcionPanel(
+                    titulo: '${granja.nombre} · Pendiente',
+                    detalle: 'Dueño: ${granja.dueno}\nRUNSA: ${granja.runsa}',
+                    alPresionar: () => _revisar(granja),
                   ),
               ],
             );

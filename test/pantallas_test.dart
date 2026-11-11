@@ -256,24 +256,41 @@ void main() {
     });
   });
 
-  final santaRosa = {...filaLosPinos, 'id': 'g2', 'nombre': 'Santa Rosa', 'hectareas': 12.5, 'confirmada': false};
+  final santaRosa = {
+    ...filaLosPinos,
+    'id': 'g2',
+    'nombre': 'Santa Rosa',
+    'hectareas': 12.5,
+    'confirmada': false,
+    'vinculaciones': [
+      {
+        'rol': 'dueno',
+        'cuentas': {'nombre': 'Ana Pérez', 'identificador': 'ana@ejemplo.com'},
+      },
+    ],
+  };
 
-  testWidgets('Administración lista las granjas en revisión y confirma una', (tester) async {
+  testWidgets('Administración muestra el dueño, abre la solicitud y la confirma', (tester) async {
     final pedidos = <http.BaseRequest>[];
     simularDatos({
       'granjas': [santaRosa],
     }, pedidos: pedidos);
     await abrir(tester, const AdministracionScreen());
     expect(find.text('1 granja por confirmar'), findsOneWidget);
-    expect(find.text('RUNSA: SC-02418'), findsOneWidget);
-    expect(find.text('Superficie: 12.50 ha'), findsOneWidget);
-    expect(find.text('Documentación: terreno.pdf'), findsOneWidget);
+    expect(find.text('Dueño: Ana Pérez · ana@ejemplo.com\nRUNSA: SC-02418'), findsOneWidget);
     expect(find.text('Mis granjas'), findsNothing);
     final lista = pedidos.singleWhere((p) => p.url.pathSegments.last == 'granjas');
     expect(lista.url.queryParameters['confirmada'], 'eq.false');
+    expect(lista.url.queryParameters['select'], contains('vinculaciones'));
+
+    await tocar(tester, 'Santa Rosa · Pendiente  ›');
+    expect(find.text('Confirmar granja'), findsOneWidget);
+    expect(find.text('Dueño: Ana Pérez · ana@ejemplo.com'), findsOneWidget);
+    expect(find.text('Superficie: 12.50 ha'), findsOneWidget);
+    expect(find.text('terreno.pdf · Archivo adjunto a la solicitud'), findsOneWidget);
 
     simularDatos({'granjas': const <Object>[]}, pedidos: pedidos);
-    await tocar(tester, 'Confirmar granja');
+    await tocar(tester, 'Confirmar registro');
     final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('confirmar_granja')) as http.Request;
     expect(jsonDecode(rpc.body), {'p_granja': 'g2'});
     expect(find.text('Santa Rosa quedó confirmada'), findsOneWidget);
@@ -281,13 +298,19 @@ void main() {
     expect(find.text('No hay solicitudes pendientes.'), findsOneWidget);
   });
 
-  testWidgets('Administración avisa si no puede confirmar o cargar', (tester) async {
+  testWidgets('Administración avisa si el dueño no es visible, si no puede confirmar o si no carga', (tester) async {
     simularDatos({
-      'granjas': [santaRosa],
+      'granjas': [
+        {...santaRosa, 'vinculaciones': const <Object>[]},
+      ],
     }, errorAlGuardar: '42501');
     await abrir(tester, const AdministracionScreen());
-    await tocar(tester, 'Confirmar granja');
+    expect(find.text('Dueño: No disponible\nRUNSA: SC-02418'), findsOneWidget);
+    await tocar(tester, 'Santa Rosa · Pendiente  ›');
+    await tocar(tester, 'Confirmar registro');
     expect(find.text('No se pudo confirmar la granja'), findsOneWidget);
+    expect(find.text('Confirmar granja'), findsOneWidget);
+    await tocar(tester, 'Volver');
     expect(find.text('1 granja por confirmar'), findsOneWidget);
 
     simularDatos(const {}, sinRed: true);
@@ -299,7 +322,7 @@ void main() {
       'granjas': [santaRosa],
     });
     await tocar(tester, 'No se pudieron cargar las granjas. Reintentar');
-    expect(find.text('Santa Rosa'), findsOneWidget);
+    expect(find.text('Santa Rosa · Pendiente  ›'), findsOneWidget);
   });
 
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {

@@ -161,10 +161,24 @@ class Granjas {
     }
   }
 
-  /// 13. Trae las granjas que esperan la confirmación del administrador técnico.
+  /// 13. Trae las granjas que esperan la confirmación del administrador técnico, con el dueño de cada una.
   Future<List<Granja>> porConfirmar() async {
-    final filas = await _db.from('granjas').select().eq('confirmada', false).order('nombre');
-    return [for (final fila in filas) Granja.fromMap(fila, dueno: '')];
+    final filas = await _db
+        .from('granjas')
+        .select('*, vinculaciones(rol, cuentas(nombre, identificador))')
+        .eq('confirmada', false)
+        .order('nombre');
+    return [for (final fila in filas) Granja.fromMap(fila, dueno: _duenoDe(fila))];
+  }
+
+  /// 13.1. Escribe el nombre y el correo del dueño; si la base no lo muestra, lo avisa.
+  String _duenoDe(Map<String, dynamic> fila) {
+    final vinculos = (fila['vinculaciones'] as List<dynamic>? ?? const []).cast<Map<String, dynamic>>();
+    final cuenta = vinculos.where((v) => v['rol'] == 'dueno').firstOrNull?['cuentas'] as Map<String, dynamic>?;
+    if (cuenta == null) return 'No disponible';
+    final correo = cuenta['identificador'] as String;
+    final nombre = cuenta['nombre'] as String?;
+    return nombre == null ? correo : '$nombre · $correo';
   }
 
   /// 14. Confirma una granja en revisión; devuelve null o el mensaje de error.
