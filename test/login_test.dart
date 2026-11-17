@@ -6,12 +6,22 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/main.dart';
+import 'package:ficha_medica_vacas/models/miembro.dart';
+import 'package:ficha_medica_vacas/screens/acceso_general/nueva_contrasena_screen.dart';
+import 'package:ficha_medica_vacas/screens/acceso_general/seleccionar_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
+import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
+import 'package:ficha_medica_vacas/screens/trabajador/cuidados_hoy_screen.dart';
+import 'package:ficha_medica_vacas/screens/veterinario/seguimiento_veterinario_screen.dart';
+
+import 'apoyo.dart';
 
 const correo = 'ana@ejemplo.com';
 
-/// Cliente de Supabase que responde sin salir a internet.
+/// 1. Crea un cliente de Supabase que responde sin salir a internet.
 GoTrueClient cliente(MockClientHandler respuesta) => GoTrueClient(
       url: 'https://prueba.supabase.co/auth/v1',
       httpClient: MockClient(respuesta),
@@ -57,7 +67,7 @@ Future<void> ingresar(WidgetTester tester, String contrasena) async {
   await tester.pumpAndSettle();
 }
 
-/// La pantalla de prueba es más baja que un celular: hay que desplazarse hasta el botón.
+/// 2. Se desplaza hasta el botón y lo toca, porque la pantalla de prueba es más baja que un celular.
 Future<void> tocar(WidgetTester tester, String boton) async {
   await tester.ensureVisible(find.text(boton));
   await tester.pumpAndSettle();
@@ -69,7 +79,7 @@ void main() {
     expect(identical(Sesion.instance, Sesion.instance), isTrue);
   });
 
-  // El Singleton conserva su estado entre pruebas: esta debe ir antes de asignar un cliente.
+  // 3. Prueba la app sin configurar antes de asignar un cliente, porque el Singleton conserva su estado.
   testWidgets('sin configuración no permite entrar', (tester) async {
     await ingresar(tester, 'clave');
     expect(find.text('La app no está configurada'), findsOneWidget);
@@ -85,18 +95,82 @@ void main() {
   testWidgets('muestra el diseño de VetLink', (tester) async {
     await tester.pumpWidget(const FichaMedicaApp());
     expect(find.text('Bienvenido a VetLink'), findsOneWidget);
-    expect(find.byType(Image), findsOneWidget);
-    expect(find.text('ana@ejemplo.com'), findsOneWidget);
+    expect(find.image(const AssetImage('assets/images/login_vaca.png')), findsOneWidget);
+    expect(find.image(const AssetImage('assets/images/logo.png')), findsOneWidget);
+    expect(find.text('Correo electrónico'), findsOneWidget);
+    expect(find.text('Contraseña'), findsOneWidget);
   });
 
-  testWidgets('avisa que recuperar la contraseña y registrarse aún no están disponibles', (tester) async {
+  testWidgets('recuperar acceso envía el correo y permite volver', (tester) async {
+    late Map<String, dynamic> enviado;
+    late Uri enlace;
+    Sesion.instance.auth = cliente((pedido) async {
+      enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
+      enlace = pedido.url;
+      return http.Response('{}', 200, headers: {'content-type': 'application/json'});
+    });
     await tester.pumpWidget(const FichaMedicaApp());
     await tocar(tester, 'Olvidé mi contraseña');
-    await tester.pump();
-    expect(find.text('Recuperar la contraseña estará disponible pronto'), findsOneWidget);
-    await tocar(tester, 'Registrar mi granja');
     await tester.pumpAndSettle();
-    expect(find.text('El registro de granjas estará disponible pronto'), findsOneWidget);
+    expect(find.text('Recuperar contraseña'), findsOneWidget);
+    await tocar(tester, 'Enviar enlace');
+    await tester.pump();
+    expect(find.text('Campo obligatorio'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField), ' $correo ');
+    await tocar(tester, 'Enviar enlace');
+    await tester.pumpAndSettle();
+    expect(enviado['email'], correo);
+    expect(enlace.queryParameters['redirect_to'], 'vetlink://restablecer');
+    expect(find.text('Si el correo tiene una cuenta, te enviamos el enlace'), findsOneWidget);
+    await tocar(tester, '‹ Volver');
+    await tester.pumpAndSettle();
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
+  testWidgets('la persona invitada crea su cuenta sin datos de granja', (tester) async {
+    late Map<String, dynamic> enviado;
+    late Uri direccion;
+    Sesion.instance.auth = cliente((pedido) async {
+      enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
+      direccion = pedido.url;
+      return http.Response(
+        jsonEncode({
+          'id': '2',
+          'aud': 'authenticated',
+          'email': correo,
+          'created_at': '2026-11-04T00:00:00Z',
+          'app_metadata': <String, Object>{},
+          'user_metadata': <String, Object>{},
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    await tester.pumpWidget(const FichaMedicaApp());
+    await tocar(tester, 'Me invitaron: crear cuenta');
+    await tester.pumpAndSettle();
+    Future<void> tocarCrear() async {
+      final boton = find.widgetWithText(FilledButton, 'Crear cuenta');
+      await tester.ensureVisible(boton);
+      await tester.pumpAndSettle();
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
+    }
+
+    await tocarCrear();
+    expect(find.text('Campo obligatorio'), findsNWidgets(2));
+    expect(find.text('Mínimo 6 caracteres'), findsOneWidget);
+
+    final campos = find.byType(TextFormField);
+    await tester.enterText(campos.at(0), ' Sofía Rojas ');
+    await tester.enterText(campos.at(1), ' $correo ');
+    await tester.enterText(campos.at(2), 'secreta1');
+    await tocarCrear();
+    expect(enviado['email'], correo);
+    expect(enviado['data'], {'nombre': 'Sofía Rojas'});
+    expect(find.text('Te enviamos un correo. Tocá el enlace desde este celular para confirmar la cuenta'), findsOneWidget);
+    expect(direccion.queryParameters['redirect_to'], 'vetlink://confirmar');
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
   });
 
   testWidgets('rechaza credenciales incorrectas', (tester) async {
@@ -125,9 +199,349 @@ void main() {
       enviado = jsonDecode(pedido.body) as Map<String, dynamic>;
       return sesionValida();
     });
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'dueno', 'granjas': filaLosPinos},
+      ],
+    });
     await ingresar(tester, 'clave');
     expect(enviado['email'], correo);
-    expect(find.text('Bienvenido, $correo'), findsOneWidget);
+    expect(find.text('Mi granja'), findsOneWidget);
+    expect(find.text('$correo · Así está el equipo de Los Pinos.'), findsOneWidget);
     expect(Sesion.instance.iniciada, isTrue);
+  });
+
+  testWidgets('pregunta por la invitación y la acepta', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    final pedidos = <http.BaseRequest>[];
+    simularDatos({
+      'invitaciones': [
+        {'id': 'i1', 'correo': correo.toUpperCase(), 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
+        {'id': 'i2', 'correo': 'otra@ejemplo.com', 'rol': 'veterinario', 'enviada_en': '2026-11-01T12:00:00Z'},
+      ],
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    }, pedidos: pedidos);
+    await ingresar(tester, 'clave');
+    expect(find.text('Te invitaron a una granja como Trabajador. ¿Quieres unirte?'), findsOneWidget);
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
+    final rpc = pedidos.singleWhere((p) => p.url.path.endsWith('aceptar_invitacion')) as http.Request;
+    expect(jsonDecode(rpc.body), {'p_invitacion': 'i1'});
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+    expect(find.text('Mi granja'), findsOneWidget);
+    expect(find.text('Miembros del equipo  ›'), findsNothing);
+  });
+
+  testWidgets('si la invitación ya no está vigente avisa y sigue entrando', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'invitaciones': [
+        {'id': 'i1', 'correo': correo, 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
+      ],
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    }, rpcQueFalla: 'aceptar_invitacion');
+    await ingresar(tester, 'clave');
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
+    expect(find.text('La invitación ya no está vigente'), findsOneWidget);
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+  });
+
+  testWidgets('el veterinario entra a su panel con la granja confirmada', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'veterinario', 'granjas': {...filaLosPinos, 'confirmada': false}},
+        {'rol': 'veterinario', 'granjas': filaLosPinos},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(SeguimientoVeterinarioScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+    expect(tester.widget<SeguimientoVeterinarioScreen>(find.byType(SeguimientoVeterinarioScreen)).granja, 'Los Pinos');
+  });
+
+  testWidgets('el administrador entra sin granja y sin aceptar invitaciones', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    final pedidos = <http.BaseRequest>[];
+    simularDatos({
+      'es_administrador': true,
+      'granjas': [
+        {...filaLosPinos, 'confirmada': false},
+      ],
+    }, pedidos: pedidos);
+    await ingresar(tester, 'clave');
+    expect(find.byType(AdministracionScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+    expect(find.text('Tu cuenta todavía no tiene una granja'), findsNothing);
+    expect(pedidos.map((p) => p.url.pathSegments.last), ['es_administrador', 'granjas']);
+    expect(find.text('1 granja por confirmar'), findsOneWidget);
+  });
+
+  testWidgets('si no se puede verificar el rol no abre ningún panel', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos(const {}, errorAlGuardar: '42501');
+    await ingresar(tester, 'clave');
+    expect(find.byType(AdministracionScreen), findsNothing);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
+  testWidgets('el trabajador entra directamente a su panel', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsNothing);
+  });
+
+  testWidgets('la invitación se puede dejar para después', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    final pedidos = <http.BaseRequest>[];
+    simularDatos({
+      'invitaciones': [
+        {'id': 'i1', 'correo': correo, 'rol': 'trabajador', 'enviada_en': '2026-11-01T12:00:00Z'},
+      ],
+    }, pedidos: pedidos);
+    await ingresar(tester, 'clave');
+    await tester.tap(find.text('Ahora no'));
+    await tester.pumpAndSettle();
+    expect(pedidos.where((p) => p.url.path.endsWith('aceptar_invitacion')), isEmpty);
+    expect(find.text('Tu cuenta todavía no tiene una granja'), findsOneWidget);
+  });
+
+  testWidgets('una granja sin confirmar muestra Granja en revisión', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {
+          'rol': 'dueno',
+          'granjas': {...filaLosPinos, 'confirmada': false},
+        },
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.text('Granja en revisión'), findsOneWidget);
+  });
+
+  testWidgets('avisa si la cuenta no tiene granjas', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({'vinculaciones': const []});
+    await ingresar(tester, 'clave');
+    expect(find.text('Tu cuenta todavía no tiene una granja'), findsOneWidget);
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
+  testWidgets('avisa si no se pueden cargar las granjas', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos(const {}, sinRed: true);
+    await ingresar(tester, 'clave');
+    expect(find.text('No se pudieron cargar tus granjas. Intenta de nuevo'), findsOneWidget);
+  });
+
+  testWidgets('con varias granjas pide elegir y al cambiar recupera el rol de cada una', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    const cuenta = {'nombre': 'Ana Pérez', 'identificador': correo};
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'veterinario', 'granjas': {...filaLosPinos, 'id': 'g2', 'nombre': 'Santa Rosa'}, 'cuentas': cuenta},
+        {'rol': 'dueno', 'granjas': filaLosPinos, 'cuentas': cuenta},
+        {'rol': 'trabajador', 'granjas': {...filaLosPinos, 'id': 'g3', 'nombre': 'El Ceibo', 'confirmada': false}, 'cuentas': cuenta},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(SeleccionarGranjaScreen), findsOneWidget);
+    expect(find.text('Veterinario · Confirmada'), findsOneWidget);
+    expect(find.textContaining('Dueño · '), findsOneWidget);
+    expect(find.text('Trabajador · En revisión'), findsOneWidget);
+
+    await tocar(tester, 'Santa Rosa');
+    await tester.pumpAndSettle();
+    expect(tester.widget<SeguimientoVeterinarioScreen>(find.byType(SeguimientoVeterinarioScreen)).granja, 'Santa Rosa');
+    expect(Granjas.instance.rol, RolMiembro.veterinario);
+
+    await tocar(tester, 'Mis granjas');
+    await tester.pumpAndSettle();
+    expect(find.text('Veterinario · Granja actual'), findsOneWidget);
+    await tocar(tester, 'Los Pinos');
+    await tester.pumpAndSettle();
+    expect(find.byType(MiGranjaScreen), findsOneWidget);
+    expect(Granjas.instance.rol, RolMiembro.dueno);
+    expect(find.text('Miembros del equipo  ›'), findsOneWidget);
+    expect(find.byType(SeguimientoVeterinarioScreen), findsNothing);
+    expect(find.byType(SeleccionarGranjaScreen), findsNothing);
+  });
+
+  test('solo los enlaces con datos de sesión se entregan a Supabase', () {
+    expect(Sesion.instance.recordarEnlace(Uri.parse('vetlink://confirmar?code=abc')), isTrue);
+    expect(Sesion.instance.recordarEnlace(Uri.parse('vetlink://restablecer#error=access_denied')), isTrue);
+    expect(Sesion.instance.recordarEnlace(Uri.parse('vetlink://invitacion')), isFalse);
+  });
+
+  testWidgets('el enlace de confirmación entra directo a la cuenta', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await tester.pumpWidget(const FichaMedicaApp());
+    Sesion.instance.recordarEnlace(Uri.parse('vetlink://confirmar?code=abc'));
+    await tester.runAsync(() => Sesion.instance.iniciar(correo, 'clave'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tu correo quedó confirmado'), findsOneWidget);
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+  });
+
+  testWidgets('un enlace vencido avisa que hay que pedir otro', (tester) async {
+    final auth = cliente((_) async => sesionValida());
+    Sesion.instance.auth = auth;
+    await tester.pumpWidget(const FichaMedicaApp());
+    Sesion.instance.recordarEnlace(Uri.parse('vetlink://confirmar?error=access_denied'));
+    // ignore: invalid_use_of_internal_member
+    auth.notifyException(AuthException('otp_expired'));
+    await tester.pumpAndSettle();
+    expect(find.text('El enlace venció o ya se usó. Pedí uno nuevo'), findsOneWidget);
+  });
+
+  testWidgets('el enlace con token_hash de confirmación valida el código y entra', (tester) async {
+    final pedidos = <http.Request>[];
+    Sesion.instance.auth = cliente((pedido) async {
+      pedidos.add(pedido);
+      return sesionValida();
+    });
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await tester.pumpWidget(const FichaMedicaApp());
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://confirmar?token_hash=hash_confirmar&type=email')));
+    await tester.pumpAndSettle();
+    final verificacion = pedidos.singleWhere((p) => p.url.path.endsWith('verify'));
+    expect(jsonDecode(verificacion.body), containsPair('token_hash', 'hash_confirmar'));
+    expect(jsonDecode(verificacion.body), containsPair('type', 'email'));
+    expect(find.text('Tu correo quedó confirmado'), findsOneWidget);
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+
+    // 5. El mismo enlace abierto dos veces no gasta el código otra vez.
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://confirmar?token_hash=hash_confirmar&type=email')));
+    expect(pedidos.where((p) => p.url.path.endsWith('verify')), hasLength(1));
+  });
+
+  testWidgets('el enlace con token_hash de recuperación abre Nueva contraseña', (tester) async {
+    Sesion.instance.auth = cliente((_) async => sesionValida());
+    await tester.pumpWidget(const FichaMedicaApp());
+    final suscripcion = Sesion.instance.alRecuperar(
+      () => navegador.currentState?.push(MaterialPageRoute(builder: (_) => const NuevaContrasenaScreen())),
+    );
+    addTearDown(() => suscripcion?.cancel());
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://restablecer?token_hash=hash_recuperar&type=recovery')));
+    await tester.pumpAndSettle();
+    expect(find.byType(NuevaContrasenaScreen), findsOneWidget);
+  });
+
+  testWidgets('el enlace con token_hash vencido avisa que hay que pedir otro', (tester) async {
+    Sesion.instance.auth = cliente((_) async => error(403, 'otp_expired'));
+    await tester.pumpWidget(const FichaMedicaApp());
+    await tester.runAsync(() => Sesion.instance.atenderEnlace(Uri.parse('vetlink://restablecer?token_hash=hash_vencido&type=recovery')));
+    await tester.pumpAndSettle();
+    expect(find.text('El enlace venció o ya se usó. Pedí uno nuevo'), findsOneWidget);
+  });
+
+  testWidgets('cerrar sesión cierra la sesión en Supabase y vuelve al login', (tester) async {
+    final rutas = <String>[];
+    Sesion.instance.auth = cliente((pedido) async {
+      rutas.add(pedido.url.path);
+      return pedido.url.path.endsWith('logout') ? http.Response('', 204) : sesionValida();
+    });
+    simularDatos({
+      'vinculaciones': [
+        {'rol': 'trabajador', 'granjas': filaLosPinos},
+      ],
+    });
+    await ingresar(tester, 'clave');
+    expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+    await tocar(tester, 'Cerrar sesión');
+    await tester.pumpAndSettle();
+    expect(rutas.where((ruta) => ruta.endsWith('logout')), hasLength(1));
+    expect(Sesion.instance.iniciada, isFalse);
+    expect(find.text('Bienvenido a VetLink'), findsOneWidget);
+  });
+
+  // 4. Abre Nueva contraseña con una sesión iniciada, como si llegara desde el enlace del correo.
+  Future<List<http.Request>> abrirNuevaContrasena(WidgetTester tester, {String? errorAlGuardar}) async {
+    final pedidos = <http.Request>[];
+    Sesion.instance.auth = cliente((pedido) async {
+      pedidos.add(pedido);
+      if (pedido.url.path.endsWith('logout')) return http.Response('', 204);
+      if (pedido.method == 'PUT') {
+        if (errorAlGuardar != null) return error(422, errorAlGuardar);
+        return http.Response(
+          jsonEncode((jsonDecode(sesionValida().body) as Map<String, dynamic>)['user']),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return sesionValida();
+    });
+    await tester.runAsync(() => Sesion.instance.iniciar(correo, 'vieja'));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NuevaContrasenaScreen())),
+              child: const Text('inicio'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('inicio'));
+    await tester.pumpAndSettle();
+    return pedidos;
+  }
+
+  testWidgets('Nueva contraseña valida, guarda la clave y vuelve al login', (tester) async {
+    final pedidos = await abrirNuevaContrasena(tester);
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pump();
+    expect(find.text('Campo obligatorio'), findsNWidgets(2));
+    await tester.enterText(find.byType(TextFormField).first, 'abcdefgh');
+    await tester.enterText(find.byType(TextFormField).last, 'distinta');
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pump();
+    expect(find.text('Las contraseñas no coinciden'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).last, 'abcdefgh');
+    await tester.tap(find.byTooltip('Mostrar contraseña'));
+    await tester.pump();
+    expect(tester.widget<TextField>(find.byType(TextField).first).obscureText, isFalse);
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pumpAndSettle();
+    final guardado = pedidos.singleWhere((p) => p.method == 'PUT');
+    expect((jsonDecode(guardado.body) as Map<String, dynamic>)['password'], 'abcdefgh');
+    expect(pedidos.where((p) => p.url.path.endsWith('logout')), hasLength(1));
+    expect(find.text('Tu contraseña se actualizó. Iniciá sesión con la nueva'), findsOneWidget);
+    expect(find.text('inicio'), findsOneWidget);
+  });
+
+  testWidgets('Nueva contraseña avisa si es igual a la anterior', (tester) async {
+    await abrirNuevaContrasena(tester, errorAlGuardar: 'same_password');
+    await tester.enterText(find.byType(TextFormField).first, 'abcdefgh');
+    await tester.enterText(find.byType(TextFormField).last, 'abcdefgh');
+    await tocar(tester, 'Guardar contraseña');
+    await tester.pumpAndSettle();
+    expect(find.text('La nueva contraseña debe ser distinta de la anterior'), findsOneWidget);
+    expect(find.byType(NuevaContrasenaScreen), findsOneWidget);
   });
 }
