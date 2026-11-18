@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/campos_granja.dart';
+import '../ganado/ganado_screen.dart';
 import '../../widgets/panel_rol.dart';
 
 class SeguimientoVeterinarioScreen extends StatelessWidget {
@@ -18,6 +19,11 @@ class SeguimientoVeterinarioScreen extends StatelessWidget {
     granja: granja,
     alCerrarSesion: alCerrarSesion,
     children: [
+      OpcionPanel(
+        titulo: 'Ganado',
+        detalle: 'Consultar las fichas del ganado de la granja.',
+        alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GanadoScreen())),
+      ),
       AvisoRol(
         titulo: 'Acceso como veterinario',
         texto: 'Tu cuenta está vinculada a $granja con el rol que te asignó el dueño. '

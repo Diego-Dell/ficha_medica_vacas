@@ -5,6 +5,7 @@ import '../../logic/sesion.dart';
 import '../../models/miembro.dart';
 import '../../widgets/panel_rol.dart';
 import '../../widgets/vetlink.dart';
+import '../ganado/ganado_screen.dart';
 import 'miembros_screen.dart';
 import 'registrar_otra_granja_screen.dart';
 
@@ -65,6 +66,11 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
           },
         ),
         const SizedBox(height: 12),
+        OpcionPanel(
+          titulo: 'Ganado',
+          detalle: 'Fichas de terneras, vaquillas y vacas; altas, cambios y bajas.',
+          alPresionar: () => _abrir(const GanadoScreen()),
+        ),
         if (esDueno)
           OpcionPanel(
             titulo: 'Miembros del equipo',
