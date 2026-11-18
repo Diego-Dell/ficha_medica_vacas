@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ficha_medica_vacas/logic/fichas.dart';
 import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/models/granja.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
@@ -56,7 +57,7 @@ void simularDatos(
   bool correoFalla = false,
   String? rpcQueFalla,
 }) {
-  Granjas.instance.cliente = SupabaseClient(
+  final cliente = SupabaseClient(
     'https://prueba.supabase.co',
     'clave',
     authOptions: const AuthClientOptions(autoRefreshToken: false),
@@ -91,6 +92,8 @@ void simularDatos(
       );
     }),
   );
+  Granjas.instance.cliente = cliente;
+  Fichas.instance.cliente = cliente;
 }
 
 /// 2. Deja a la persona trabajando en Los Pinos con el rol indicado.
