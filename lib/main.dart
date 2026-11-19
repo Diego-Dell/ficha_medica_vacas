@@ -8,15 +8,21 @@ import 'screens/acceso_general/nueva_contrasena_screen.dart';
 /// Permite abrir pantallas desde fuera de un widget, como el enlace de recuperación.
 final navegador = GlobalKey<NavigatorState>();
 
+/// Espera a que el navegador esté montado, incluso al iniciar desde el correo.
+void abrirRecuperacion() {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    navegador.currentState?.push(MaterialPageRoute(builder: (_) => const NuevaContrasenaScreen()));
+  });
+  WidgetsBinding.instance.ensureVisualUpdate();
+}
+
 Future<void> main() async {
   // 1. Conecta la sesión con Supabase antes de abrir la app.
   WidgetsFlutterBinding.ensureInitialized();
   await Sesion.instance.inicializar();
 
   // 2. Si la app se abre desde el correo de recuperación, muestra Nueva contraseña.
-  Sesion.instance.alRecuperar(
-    () => navegador.currentState?.push(MaterialPageRoute(builder: (_) => const NuevaContrasenaScreen())),
-  );
+  Sesion.instance.alRecuperar(abrirRecuperacion);
 
   // 3. Abre la app en la pantalla de login.
   runApp(const FichaMedicaApp());

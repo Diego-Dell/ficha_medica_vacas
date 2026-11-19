@@ -4,6 +4,7 @@ import '../../logic/granjas.dart';
 import '../../models/miembro.dart';
 import '../../widgets/vetlink.dart';
 import 'invitar_screen.dart';
+import 'expulsar_miembro_screen.dart';
 
 typedef _Equipo = ({List<Miembro> miembros, List<Invitacion> invitaciones});
 
@@ -34,6 +35,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
 
   /// 3. Reenvía el correo de todas las invitaciones pendientes.
   Future<void> _reenviar() async {
+    if (_reenviando) return;
     setState(() => _reenviando = true);
     final List<Invitacion> pendientes;
     try {
@@ -148,6 +150,31 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
           texto: _reenviando ? 'Reenviando...' : 'Reenviar invitación',
           alPresionar: _reenviando ? null : _reenviar,
         ),
+        if (Granjas.instance.rol == RolMiembro.dueno)
+          BotonSecundario(
+            texto: 'Expulsar de la granja',
+            alPresionar: () async {
+              try {
+                final equipo = await _equipo;
+                if (!context.mounted) return;
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ExpulsarMiembroScreen(miembros: equipo.miembros),
+                  ),
+                );
+                if (mounted) _recargar();
+              } on Exception {
+                if (context.mounted) {
+                  avisar(
+                    context,
+                    'No se pudo cargar el equipo. Intenta de nuevo',
+                  );
+                }
+              }
+            },
+          ),
         const SizedBox(height: 4),
         Text(
           'Cada persona conserva el rol asignado en esta granja.',

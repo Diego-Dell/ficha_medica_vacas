@@ -78,7 +78,7 @@ class _OpcionGranja extends StatelessWidget {
     final actual = Granjas.instance.esActual(granja);
 
     // 1. Cada granja muestra el rol de la persona y si ya está confirmada.
-    final estado = granja.confirmada ? (actual ? 'Granja actual' : 'Confirmada') : 'En revisión';
+    final estado = granja.confirmada ? (actual ? 'Granja actual' : 'Confirmada') : granja.rechazada ? 'Solicitud rechazada' : 'En revisión';
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(

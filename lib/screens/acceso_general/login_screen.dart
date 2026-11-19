@@ -13,6 +13,7 @@ import 'crear_cuenta_screen.dart';
 import 'recuperar_screen.dart';
 import '../dueno_granja/registrar_granja_screen.dart';
 import 'seleccionar_granja_screen.dart';
+import 'aceptar_invitacion_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _contrasena = TextEditingController();
   bool _enviando = false;
   StreamSubscription<AuthState>? _enlaces;
+  bool _abriendoInvitacion = false;
 
   @override
   void initState() {
@@ -34,24 +36,70 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 1. Si la app se abre desde el enlace de confirmación, entra directo a la cuenta ya confirmada.
     _enlaces = Sesion.instance.alAbrirEnlace(
-      alConfirmar: () {
-        if (!mounted) return;
-        Navigator.popUntil(context, (ruta) => ruta.isFirst);
-        avisar(context, 'Tu correo quedó confirmado');
-        _entrar();
+      alInvitar: () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _abrirInvitacion();
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
       },
-      alFallar: (mensaje) => WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) avisar(context, mensaje);
-      }),
+      alConfirmar: () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Navigator.popUntil(context, (ruta) => ruta.isFirst);
+          avisar(context, 'Tu correo quedó confirmado');
+          _entrar();
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
+      },
+      alFallar: (mensaje) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) avisar(context, mensaje);
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
+      },
     );
   }
 
   @override
   void dispose() {
+    Sesion.instance.dejarDeEscucharEnlaces();
     _enlaces?.cancel();
     _correo.dispose();
     _contrasena.dispose();
     super.dispose();
+  }
+
+  Future<void> _abrirInvitacion() async {
+    if (_abriendoInvitacion) return;
+    _abriendoInvitacion = true;
+    try {
+      if (Sesion.instance.iniciada) {
+        final invitaciones = await Granjas.instance.misInvitaciones();
+        if (!mounted) return;
+        if (invitaciones.isNotEmpty) {
+          Navigator.popUntil(context, (ruta) => ruta.isFirst);
+          await _entrar();
+          return;
+        }
+        final cambiar = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+          title: const Text('Abrir invitación'),
+          content: Text('La sesión abierta es ${Sesion.instance.usuario}. Para aceptar la invitación usá el correo que la recibió.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Volver')),
+            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cambiar cuenta')),
+          ],
+        ));
+        if (cambiar != true || !mounted) return;
+        await Sesion.instance.cerrar();
+        if (!mounted) return;
+      }
+      Navigator.popUntil(context, (ruta) => ruta.isFirst);
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => const CrearCuentaScreen()));
+    } on Exception {
+      if (mounted) avisar(context, 'No se pudo consultar la invitación. Revisá la conexión e intentá nuevamente');
+    } finally {
+      _abriendoInvitacion = false;
+    }
   }
 
   Future<void> _ingresar() async {
@@ -65,7 +113,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 3. Muestra el error o abre la pantalla que corresponde a la cuenta.
     if (error != null) {
-      avisar(context, error);
+      if (error == 'Falta confirmar el correo') {
+        final correo = _correo.text.trim();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error),
+          action: SnackBarAction(label: 'Reenviar correo', onPressed: () async {
+            final fallo = await Sesion.instance.reenviarConfirmacion(correo);
+            if (mounted) avisar(context, fallo ?? 'Se solicitó el correo de confirmación. Revisá tu correo y spam');
+          })));
+      } else {
+        avisar(context, error);
+      }
     } else {
       await _entrar();
     }
@@ -81,6 +138,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AdministracionScreen()));
         return;
       }
+
+      final errorDocumento = await Granjas.instance.subirDocumentosPendientes();
+      if (errorDocumento != null && mounted) avisar(context, errorDocumento);
 
       // 2. Pregunta por las invitaciones pendientes de la cuenta.
       await _atenderInvitaciones();
@@ -110,16 +170,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _atenderInvitaciones() async {
     for (final invitacion in await Granjas.instance.misInvitaciones()) {
       if (!mounted) return;
-      final acepta = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Tienes una invitación'),
-          content: Text('Te invitaron a una granja como ${invitacion.rol.etiqueta}. ¿Quieres unirte?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Ahora no')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Aceptar')),
-          ],
-        ),
+      final acepta = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => AceptarInvitacionScreen(invitacion: invitacion)),
       );
       if (!(acepta ?? false)) continue;
 
