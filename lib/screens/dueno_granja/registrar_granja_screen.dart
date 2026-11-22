@@ -62,8 +62,13 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
     final registrada = Sesion.instance.granjaRegistrada!;
     final correo = _correo.text.trim();
     final correoEnviado = Sesion.instance.correoRegistroEnviado;
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GranjaRevisionScreen(
-      granja: registrada, correoConfirmacion: correo, correoEnviado: correoEnviado)));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            GranjaRevisionScreen(granja: registrada, correoConfirmacion: correo, correoEnviado: correoEnviado),
+      ),
+    );
   }
 
   @override
@@ -86,7 +91,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
                 etiqueta: 'Nombre completo *',
                 child: TextFormField(
                   controller: _dueno,
-                  decoration: decoracionCampo(),
+                  decoration: decoracionCampo(icono: 'perfil'),
                   textCapitalization: TextCapitalization.words,
                   validator: requerido,
                 ),
@@ -95,7 +100,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
                 etiqueta: 'Correo electrónico *',
                 child: TextFormField(
                   controller: _correo,
-                  decoration: decoracionCampo(),
+                  decoration: decoracionCampo(icono: 'correo'),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   validator: requerido,
@@ -105,7 +110,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
                 etiqueta: 'Contraseña *',
                 child: TextFormField(
                   controller: _contrasena,
-                  decoration: decoracionCampo(),
+                  decoration: decoracionCampo(icono: 'candado'),
                   obscureText: true,
                   validator: _contrasenaValida,
                 ),

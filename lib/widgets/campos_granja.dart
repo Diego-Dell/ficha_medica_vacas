@@ -1,4 +1,5 @@
 import '../logic/documentos.dart';
+
 import 'package:flutter/material.dart';
 
 import 'vetlink.dart';
@@ -50,7 +51,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: etiquetaNombre,
           child: TextFormField(
             controller: nombre,
-            decoration: decoracionCampo(pista: compacto ? null : 'Los Pinos'),
+            decoration: decoracionCampo(pista: compacto ? null : 'Los Pinos', icono: 'granja'),
             textCapitalization: TextCapitalization.words,
             validator: requerido,
           ),
@@ -59,7 +60,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: 'Superficie (hectáreas) *',
           child: TextFormField(
             controller: superficie,
-            decoration: decoracionCampo(pista: compacto ? null : '18'),
+            decoration: decoracionCampo(pista: compacto ? null : '18', icono: 'ubicacion'),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             validator: superficieValida,
           ),
@@ -68,7 +69,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: 'RUNSA *',
           child: TextFormField(
             controller: runsa,
-            decoration: decoracionCampo(pista: compacto ? null : 'SC-02418'),
+            decoration: decoracionCampo(pista: compacto ? null : 'SC-02418', icono: 'documento'),
             textCapitalization: TextCapitalization.characters,
             validator: requerido,
           ),
@@ -77,8 +78,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: etiquetaDocumento,
           child: FormField<String>(
             initialValue: documentoInicial,
-            validator: (valor) => requerido(valor) ??
-              (valor!.toLowerCase().endsWith('.pdf') ? null : 'Adjuntá un PDF'),
+            validator: (valor) => requerido(valor) ?? (valor!.toLowerCase().endsWith('.pdf') ? null : 'Adjuntá un PDF'),
             builder: (campo) => InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () async {
@@ -118,24 +118,7 @@ class AvisoRol extends StatelessWidget {
   final String titulo;
   final String texto;
 
+  // 1. Usa el aviso informativo del manual de marca.
   @override
-  Widget build(BuildContext context) {
-    final tema = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: colorVerdeSuave, borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            titulo,
-            style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(texto, style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AvisoVetLink(titulo: titulo, texto: texto);
 }

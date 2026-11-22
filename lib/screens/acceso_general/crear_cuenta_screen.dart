@@ -62,7 +62,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                 etiqueta: 'Nombre completo *',
                 child: TextFormField(
                   controller: _nombre,
-                  decoration: decoracionCampo(pista: 'Sofía Rojas'),
+                  decoration: decoracionCampo(pista: 'Sofía Rojas', icono: 'perfil'),
                   textCapitalization: TextCapitalization.words,
                   validator: requerido,
                 ),
@@ -71,7 +71,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                 etiqueta: 'Correo electrónico *',
                 child: TextFormField(
                   controller: _correo,
-                  decoration: decoracionCampo(pista: 'sofia@ejemplo.com'),
+                  decoration: decoracionCampo(pista: 'sofia@ejemplo.com', icono: 'correo'),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   validator: requerido,
@@ -81,7 +81,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                 etiqueta: 'Contraseña *',
                 child: TextFormField(
                   controller: _contrasena,
-                  decoration: decoracionCampo(),
+                  decoration: decoracionCampo(icono: 'candado'),
                   obscureText: true,
                   validator: _contrasenaValida,
                 ),
