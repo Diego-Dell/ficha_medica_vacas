@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../logic/documentos.dart';
 
 import '../../logic/granjas.dart';
 import '../../models/granja.dart';
@@ -15,6 +18,68 @@ class ConfirmarGranjaScreen extends StatefulWidget {
 
 class _ConfirmarGranjaScreenState extends State<ConfirmarGranjaScreen> {
   bool _confirmando = false;
+  bool _abriendo = false;
+
+  Future<void> _abrirDocumento() async {
+    if (_abriendo) return;
+    setState(() => _abriendo = true);
+    try {
+      final enlace = await Granjas.instance.enlaceDocumento(widget.granja);
+      if (!await launchUrl(Uri.parse(enlace), mode: LaunchMode.externalApplication)) {
+        throw Exception('No se pudo abrir');
+      }
+    } on Exception {
+      if (mounted) avisar(context, 'No se pudo abrir el documento. Revisá tu conexión e intentá nuevamente');
+    } finally {
+      if (mounted) setState(() => _abriendo = false);
+    }
+  }
+
+  Future<void> _rechazar() async {
+    if (_confirmando) return;
+    var motivo = '';
+    final form = GlobalKey<FormState>();
+    final texto = await showDialog<String>(
+      context: context,
+      builder: (dialogo) => AlertDialog(
+        title: const Text('Rechazar solicitud'),
+        content: Form(
+          key: form,
+          child: TextFormField(
+            onChanged: (valor) => motivo = valor,
+            maxLength: 500,
+            maxLines: 3,
+            decoration: decoracionCampo(pista: 'Motivo que verá el dueño'),
+            validator: requerido,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogo),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (form.currentState!.validate()) {
+                Navigator.pop(dialogo, motivo.trim());
+              }
+            },
+            child: const Text('Rechazar'),
+          ),
+        ],
+      ),
+    );
+    if (texto == null || !mounted) return;
+    setState(() => _confirmando = true);
+    final error = await Granjas.instance.rechazar(widget.granja, texto);
+    if (!mounted) return;
+    setState(() => _confirmando = false);
+    if (error != null) {
+      avisar(context, error);
+    } else {
+      Navigator.pop(context, false);
+    }
+  }
 
   Future<void> _confirmar() async {
     // 1. Evita confirmar dos veces la misma granja.
@@ -71,12 +136,18 @@ class _ConfirmarGranjaScreenState extends State<ConfirmarGranjaScreen> {
         tarjeta([
           titulo('Documentación del terreno'),
           const SizedBox(height: 4),
-          dato(granja.documento.isEmpty ? 'Sin archivo adjunto' : '${granja.documento} · Archivo adjunto a la solicitud'),
+          dato(Documentos.subido(granja.documento)
+              ? Documentos.nombre(granja.documento)
+              : 'El dueño todavía no subió el archivo'),
+          if (Documentos.subido(granja.documento))
+            BotonSecundario(texto: _abriendo ? 'Abriendo...' : 'Abrir documento',
+              alPresionar: _abriendo ? null : _abrirDocumento),
         ]),
         BotonPrincipal(
           texto: _confirmando ? 'Confirmando...' : 'Confirmar registro',
-          alPresionar: _confirmando ? null : _confirmar,
+          alPresionar: _confirmando || !Documentos.subido(granja.documento) ? null : _confirmar,
         ),
+        BotonSecundario(texto: 'Rechazar solicitud', alPresionar: _confirmando ? null : _rechazar),
         BotonSecundario(texto: 'Volver', alPresionar: volver),
       ],
     );

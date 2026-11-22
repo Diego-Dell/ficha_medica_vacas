@@ -11,6 +11,7 @@ class Pantalla extends StatelessWidget {
     this.subtitulo,
     this.volver = true,
     this.barraInferior,
+    this.menuLateral,
     this.granja,
     this.rol,
   });
@@ -20,6 +21,7 @@ class Pantalla extends StatelessWidget {
   final List<Widget> children;
   final bool volver;
   final Widget? barraInferior;
+  final Widget? menuLateral;
   final String? granja;
   final String? rol;
 
@@ -38,6 +40,8 @@ class Pantalla extends StatelessWidget {
         ),
       ),
       child: Scaffold(
+        endDrawer: menuLateral,
+        drawerScrimColor: const Color(0x66000000),
         backgroundColor: const Color(0xFFF7F8F0),
         bottomNavigationBar: barraInferior,
         body: SafeArea(

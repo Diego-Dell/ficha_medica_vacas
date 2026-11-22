@@ -32,14 +32,17 @@ const tablasEquipo = <String, Object>{
   'vinculaciones': [
     {
       'rol': 'dueno',
+      'cuenta_id': 'dueno1',
       'cuentas': {'nombre': 'Ana Pérez', 'identificador': 'ana@ejemplo.com'},
     },
     {
       'rol': 'veterinario',
+      'cuenta_id': 'vet1',
       'cuentas': {'nombre': 'Sofía Rojas', 'identificador': 'sofia@ejemplo.com'},
     },
     {
       'rol': 'trabajador',
+      'cuenta_id': 'trabajador1',
       'cuentas': {'nombre': null, 'identificador': 'luis@ejemplo.com'},
     },
   ],
@@ -68,6 +71,7 @@ void simularDatos(
       if (errorAlGuardar != null && pedido.method != 'GET') {
         return http.Response(jsonEncode({'code': errorAlGuardar, 'message': 'error'}), 409, request: pedido);
       }
+      if (pedido.url.path.contains('/storage/v1/object/')) return http.Response('{"Key":"archivo"}', 200, request: pedido, headers: {'content-type': 'application/json'});
       final nombre = pedido.url.pathSegments.last;
       if (nombre == rpcQueFalla) {
         return http.Response(jsonEncode({'code': 'P0001', 'message': 'error'}), 400, request: pedido);
@@ -83,6 +87,10 @@ void simularDatos(
       }
       if (nombre == 'invitaciones' && pedido.method == 'POST') {
         return http.Response(jsonEncode({'id': 'nueva'}), 201, request: pedido);
+      }
+      if (nombre == 'mis_invitaciones') {
+        return http.Response.bytes(utf8.encode(jsonEncode(tablas['invitaciones'] ?? [])), 200,
+          request: pedido, headers: {'content-type': 'application/json; charset=utf-8'});
       }
       return http.Response.bytes(
         utf8.encode(jsonEncode(tablas[nombre] ?? (nombre == 'es_administrador' ? false : const []))),

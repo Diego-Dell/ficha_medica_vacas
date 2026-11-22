@@ -59,7 +59,11 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
       avisar(context, error);
       return;
     }
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GranjaRevisionScreen(granja: granja)));
+    final registrada = Sesion.instance.granjaRegistrada!;
+    final correo = _correo.text.trim();
+    final correoEnviado = Sesion.instance.correoRegistroEnviado;
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GranjaRevisionScreen(
+      granja: registrada, correoConfirmacion: correo, correoEnviado: correoEnviado)));
   }
 
   @override

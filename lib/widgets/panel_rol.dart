@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../logic/sesion.dart';
-import '../screens/acceso_general/seleccionar_granja_screen.dart';
+import 'menu_granjas.dart';
+import '../screens/dueno_granja/registrar_otra_granja_screen.dart';
 import 'pantalla.dart';
 import 'vetlink.dart';
 
@@ -15,7 +16,7 @@ class OpcionPanel extends StatelessWidget {
   });
 
   final String titulo, detalle;
-  final VoidCallback alPresionar;
+  final VoidCallback? alPresionar;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -77,14 +78,20 @@ class PanelRol extends StatelessWidget {
     this.subtitulo,
     this.alCerrarSesion,
     this.cambiarGranja = true,
+    this.alRegistrarGranja,
+    this.mostrarReportes = true,
+    this.menuLateral,
   });
 
   final String rol, granja, titulo;
   final String? subtitulo;
   final List<Widget> children;
   final VoidCallback? alCerrarSesion;
+  final VoidCallback? alRegistrarGranja;
+  final bool mostrarReportes;
+  final Widget? menuLateral;
 
-  /// El administrador técnico no trabaja dentro de una granja, así que no la cambia.
+  /// Controla si se muestra el menú de granjas.
   final bool cambiarGranja;
 
   @override
@@ -94,6 +101,10 @@ class PanelRol extends StatelessWidget {
     granja: granja,
     rol: rol,
     volver: false,
+    menuLateral: menuLateral ?? (cambiarGranja ? MenuGranjas(
+      alRegistrar: alRegistrarGranja ?? () => Navigator.push(context,
+        MaterialPageRoute(builder: (_) => const RegistrarOtraGranjaScreen())),
+    ) : null),
     barraInferior: Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -114,20 +125,17 @@ class PanelRol extends StatelessWidget {
                   ),
                 ),
               ),
+              const Expanded(child: TextButton(onPressed: null, child: Text('Avisos', style: TextStyle(fontSize: 12)))),
+              if (mostrarReportes)
+                const Expanded(child: TextButton(onPressed: null, child: Text('Reportes', style: TextStyle(fontSize: 12)))),
               if (cambiarGranja)
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SeleccionarGranjaScreen()),
-                    ),
-                    icon: const Icon(Icons.swap_horiz, color: colorVerde, size: 18),
-                    label: const Text(
-                      'Mis granjas',
-                      style: TextStyle(fontSize: 12, color: colorVerde),
-                    ),
-                  ),
-                ),
+                Builder(builder: (context) => IconButton(
+                  tooltip: 'Opciones',
+                  icon: const Icon(Icons.menu, color: colorVerde),
+                  onPressed: () => Scaffold.of(context).openEndDrawer(),
+                ))
+              else
+                const IconButton(onPressed: null, tooltip: 'Opciones', icon: Icon(Icons.menu)),
             ],
           ),
         ),

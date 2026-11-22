@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/campos_granja.dart';
-import '../ganado/ganado_screen.dart';
 import '../../widgets/panel_rol.dart';
+import '../ganado/ganado_screen.dart';
 
 class SeguimientoVeterinarioScreen extends StatelessWidget {
   const SeguimientoVeterinarioScreen({
@@ -19,15 +18,14 @@ class SeguimientoVeterinarioScreen extends StatelessWidget {
     granja: granja,
     alCerrarSesion: alCerrarSesion,
     children: [
+      const OpcionPanel(titulo: 'Clínica', detalle: 'Registrar atención médica.', alPresionar: null),
+      const OpcionPanel(titulo: 'Reproducción', detalle: 'Valorar aptitud y preñez; registrar parto o pérdida.', alPresionar: null),
+      const OpcionPanel(titulo: 'Tratamiento', detalle: 'Registrar la prescripción de una atención médica.', alPresionar: null),
+      const OpcionPanel(titulo: 'Prevención', detalle: 'Programar vacunas, desparasitación y controles.', alPresionar: null),
       OpcionPanel(
-        titulo: 'Ganado',
-        detalle: 'Consultar las fichas del ganado de la granja.',
+        titulo: 'Consulta',
+        detalle: 'Buscar animales y revisar su seguimiento.',
         alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GanadoScreen())),
-      ),
-      AvisoRol(
-        titulo: 'Acceso como veterinario',
-        texto: 'Tu cuenta está vinculada a $granja con el rol que te asignó el dueño. '
-            'Si atendés otras granjas, elegilas en Mis granjas.',
       ),
     ],
   );
