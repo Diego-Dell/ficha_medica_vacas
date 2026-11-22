@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import '../../logic/fichas.dart';
 import '../../logic/granjas.dart';
 import '../../models/animal.dart';
+import '../../widgets/selector_animal.dart';
 import '../../widgets/vetlink.dart';
+import 'ficha_animal_screen.dart';
 
+// 1. "Baja del animal" del prototipo; solo la ve el dueño.
 class DarDeBajaScreen extends StatefulWidget {
-  const DarDeBajaScreen({super.key, required this.animal});
-
-  final Animal animal;
+  const DarDeBajaScreen({super.key});
 
   @override
   State<DarDeBajaScreen> createState() => _DarDeBajaScreenState();
@@ -17,6 +18,7 @@ class DarDeBajaScreen extends StatefulWidget {
 class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
   final _form = GlobalKey<FormState>();
   final _motivo = TextEditingController();
+  Animal? _animal;
   DateTime _fecha = DateUtils.dateOnly(DateTime.now());
   bool _enviando = false;
 
@@ -26,7 +28,6 @@ class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
     super.dispose();
   }
 
-  /// 1. Abre el calendario sin permitir fechas futuras.
   Future<void> _elegirFecha() async {
     final hoy = DateUtils.dateOnly(DateTime.now());
     final elegida = await showDatePicker(
@@ -38,62 +39,73 @@ class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
     if (elegida != null) setState(() => _fecha = elegida);
   }
 
-  Future<void> _confirmar() async {
-    // 1. Valida el formulario y evita envíos dobles.
-    if (_enviando || !_form.currentState!.validate()) return;
+  // 2. Ventana "¿Confirmar la baja?" del prototipo.
+  Future<bool> _confirmar(Animal animal) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: colorFondo,
+          title: const Text('¿Confirmar la baja?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${animal.titulo} · ${Granjas.instance.actual.nombre}'),
+              const SizedBox(height: 8),
+              const Text(
+                'Se conservará el historial y no se admitirán nuevos eventos.',
+                style: TextStyle(color: colorTextoSuave, fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            BotonPrincipal(texto: 'Sí, dar de baja', color: colorRojo, alPresionar: () => Navigator.pop(context, true)),
+            BotonSecundario(texto: 'Cancelar', alPresionar: () => Navigator.pop(context, false)),
+          ],
+        ),
+      ) ??
+      false;
+
+  Future<void> _darDeBaja() async {
+    // 3. Valida, pide confirmación y evita envíos dobles.
+    final animal = _animal;
+    if (_enviando || !_form.currentState!.validate() || animal == null) return;
+    if (!await _confirmar(animal) || !mounted) return;
     setState(() => _enviando = true);
 
-    // 2. Guarda la fecha y el motivo en Supabase.
-    final animal = widget.animal;
     final error = await Fichas.instance.darDeBaja(animal, _fecha, _motivo.text);
     if (!mounted) return;
     setState(() => _enviando = false);
-
-    // 3. Muestra el error o avisa el resultado y vuelve a la ficha.
     if (error != null) {
       avisar(context, error);
       return;
     }
-    avisar(context, '${animal.titulo} se dio de baja. Su ficha y su historial se conservan');
-    Navigator.pop(context, true);
+
+    // 4. Muestra la ficha conservada después de la baja.
+    try {
+      final actual = await Fichas.instance.porId(animal.id);
+      if (!mounted) return;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => FichaAnimalScreen(animal: actual)));
+    } on Exception {
+      if (!mounted) return;
+      avisar(context, '${animal.titulo} se dio de baja');
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final granja = Granjas.instance.actual.nombre;
-    final tema = Theme.of(context).textTheme;
-    final animal = widget.animal;
-    void volver() => Navigator.pop(context);
-
     return PantallaVetLink(
-      encabezado: EncabezadoVetLink(granja: granja, alVolver: volver),
-      titulo: 'Dar de baja',
-      subtitulo: 'La ficha y el historial se conservarán.',
+      encabezado: EncabezadoVetLink(granja: Granjas.instance.actual.nombre, alVolver: () => Navigator.pop(context)),
+      titulo: 'Baja del animal',
+      subtitulo: 'El historial del animal se conserva.',
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: colorVerdeSuave, borderRadius: BorderRadius.circular(10)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                animal.titulo,
-                style: tema.titleSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                [animal.etapa.etiqueta, if (animal.raza != null) animal.raza!, granja].join(' · '),
-                style: tema.bodySmall?.copyWith(color: colorTextoSuave),
-              ),
-            ],
-          ),
-        ),
         Form(
           key: _form,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              SelectorAnimal(alElegir: (animal) => _animal = animal),
               CampoEtiquetado(
                 etiqueta: 'Fecha de baja *',
                 child: InkWell(
@@ -103,43 +115,21 @@ class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
                 ),
               ),
               CampoEtiquetado(
-                etiqueta: 'Motivo *',
+                etiqueta: 'Motivo de baja *',
                 child: TextFormField(
                   controller: _motivo,
                   decoration: decoracionCampo(pista: 'Venta del animal'),
                   textCapitalization: TextCapitalization.sentences,
-                  maxLines: 3,
                   validator: requerido,
                 ),
               ),
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: colorAmbarFondo, borderRadius: BorderRadius.circular(10)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Revisá antes de confirmar',
-                style: tema.labelLarge?.copyWith(color: colorAmbarTexto, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'El animal dado de baja no admitirá nuevos eventos.',
-                style: tema.bodySmall?.copyWith(color: colorAmbarTexto),
-              ),
-            ],
-          ),
-        ),
         BotonPrincipal(
           texto: _enviando ? 'Confirmando...' : 'Confirmar baja',
-          color: colorRojo,
-          alPresionar: _enviando ? null : _confirmar,
+          alPresionar: _enviando ? null : _darDeBaja,
         ),
-        BotonSecundario(texto: 'Volver', alPresionar: volver),
       ],
     );
   }

@@ -5,13 +5,11 @@ import '../logic/granjas.dart';
 import '../models/animal.dart';
 import 'vetlink.dart';
 
-/// Campo para elegir un animal activo de la granja actual; lo comparten Clínica, Tratamientos y Cuidados.
+// 1. Campo "Animal de <granja>" del prototipo; lo usan Baja, Clínica, Tratamientos y Cuidados.
 class SelectorAnimal extends StatefulWidget {
   const SelectorAnimal({super.key, required this.alElegir, this.inicial});
 
   final ValueChanged<Animal> alElegir;
-
-  /// Animal ya elegido, por ejemplo cuando se llega desde su ficha.
   final Animal? inicial;
 
   @override
@@ -22,7 +20,6 @@ class _SelectorAnimalState extends State<SelectorAnimal> {
   late Future<List<Animal>> _animales = Fichas.instance.activos();
   late String? _id = widget.inicial?.id;
 
-  /// 1. Vuelve a pedir los animales activos.
   void _recargar() {
     setState(() {
       _animales = Fichas.instance.activos();
@@ -49,9 +46,9 @@ class _SelectorAnimalState extends State<SelectorAnimal> {
           );
         }
 
-        // 2. Solo ofrece animales activos: un animal dado de baja no admite nuevos eventos.
+        // 2. Solo animales activos: uno dado de baja no admite nuevos eventos.
         return CampoEtiquetado(
-          etiqueta: 'Animal de ${Granjas.instance.actual.nombre} *',
+          etiqueta: 'Animal de ${Granjas.instance.actual.nombre}',
           child: DropdownButtonFormField<String>(
             initialValue: animales.any((a) => a.id == _id) ? _id : null,
             isExpanded: true,

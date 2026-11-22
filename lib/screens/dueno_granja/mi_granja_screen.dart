@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../logic/granjas.dart';
 import '../../models/miembro.dart';
 import '../../widgets/panel_rol.dart';
+import '../ganado/dar_de_baja_screen.dart';
 import '../ganado/editar_ficha_screen.dart';
 import '../ganado/ganado_screen.dart';
 import 'miembros_screen.dart';
@@ -27,11 +28,10 @@ class MiGranjaScreen extends StatelessWidget {
           detalle: 'Crear o actualizar los datos del ganado.',
           alPresionar: () => abrir(const EditarFichaScreen()),
         ),
-        // 1. La baja se registra desde la ficha del animal elegido en la lista.
         OpcionPanel(
           titulo: 'Baja del animal',
           detalle: 'Registrar fecha y motivo; conservar el historial.',
-          alPresionar: () => abrir(const GanadoScreen()),
+          alPresionar: () => abrir(const DarDeBajaScreen()),
         ),
         OpcionPanel(
           titulo: 'Búsqueda',
