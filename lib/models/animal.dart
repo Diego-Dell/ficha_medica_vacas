@@ -20,7 +20,7 @@ class Animal {
     this.motivoBaja,
   });
 
-  /// 1. Crea el animal a partir de una ficha de Supabase.
+  // 1. Crea el animal desde una fila de Supabase.
   factory Animal.fromMap(Map<String, dynamic> fila) => Animal(
         id: fila['id'] as String,
         arete: fila['identificacion'] as String,
@@ -34,8 +34,6 @@ class Animal {
       );
 
   final String id;
-
-  /// Identificación única del animal dentro de su granja (arete u otro código).
   final String arete;
   final String? nombre;
   final String? raza;
@@ -47,10 +45,10 @@ class Animal {
 
   bool get deBaja => fechaBaja != null;
 
-  /// 2. Escribe el nombre con el arete, o solo el arete si no tiene nombre.
+  // 2. Nombre e identificación, o solo la identificación.
   String get titulo => nombre == null ? arete : '$nombre · $arete';
 
-  /// 3. Arma los datos generales que se guardan en la ficha; la baja se guarda aparte.
+  // 3. Datos generales que se guardan; la baja va aparte.
   Map<String, dynamic> datosGenerales() => {
         'identificacion': arete,
         'nombre': nombre,

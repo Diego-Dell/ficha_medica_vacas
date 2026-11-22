@@ -13,7 +13,7 @@ import 'widgets/vetlink.dart';
 /// Entrada independiente para revisar las pantallas sin cuenta ni Supabase.
 void main() => runApp(const VistaPreviaApp());
 
-/// Granja de ejemplo: las pantallas de fichas necesitan una granja elegida aunque no haya Supabase.
+// 1. Granja de ejemplo para abrir las fichas sin Supabase.
 const _losPinos = Granja(
   id: 'vista-previa',
   nombre: 'Los Pinos',
@@ -45,7 +45,7 @@ class _Selector extends StatelessWidget {
   Widget build(BuildContext context) {
     void abrir(Widget pantalla) =>
         Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
-    // 1. Elige la granja de ejemplo con el rol del panel antes de abrirlo.
+    // 2. Elige la granja de ejemplo con el rol del panel.
     void abrirComo(RolMiembro rol, Widget pantalla) {
       Granjas.instance.seleccionar((granja: _losPinos, rol: rol));
       abrir(pantalla);

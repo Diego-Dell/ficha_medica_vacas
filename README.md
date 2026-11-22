@@ -37,7 +37,7 @@ lib/
 
 ## Fichas del ganado (Sprint 2 · RF-02)
 
-Desde Mi granja: *Ficha* crea una ficha nueva o actualiza una existente, *Búsqueda* y *Baja del animal* abren la lista del ganado. El trabajador tiene *Ficha* y *Consulta*; el veterinario, *Consulta*.
+Desde Mi granja: *Ficha* crea o actualiza una ficha, *Baja del animal* registra la baja y *Búsqueda* abre Consulta y supervisión. El trabajador tiene *Ficha* y *Consulta*; el veterinario, *Consulta*.
 
 | Acción | Dueño | Trabajador | Veterinario |
 | --- | --- | --- | --- |
@@ -51,7 +51,7 @@ La base aplica los mismos permisos con las políticas `fichas_crear` y `fichas_e
 
 - `Fichas.instance.activos()` trae los animales activos de la granja actual; un animal dado de baja no admite nuevos eventos.
 - `SelectorAnimal(alElegir: …, inicial: …)` es el campo para elegir el animal en un formulario; valida que se haya elegido uno.
-- `FichaAnimalScreen._registros` es el lugar donde cada módulo agrega su `OpcionPanel` en la ficha del animal.
+- `FichaAnimalScreen._registros` es donde cada módulo agrega su historial y opciones en la ficha del animal.
 - En las pruebas, `simularDatos({'fichas_bovinas': [...]})` simula las fichas igual que las demás tablas.
 
 ## Configuración
