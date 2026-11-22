@@ -7,6 +7,7 @@ import '../../models/miembro.dart';
 import '../../widgets/vetlink.dart';
 import '../inicio_por_rol.dart';
 import 'dar_de_baja_screen.dart';
+import '../../widgets/historial_clinico.dart';
 import 'editar_ficha_screen.dart';
 
 // 1. Ficha del animal: activa, o conservada después de la baja.
@@ -23,7 +24,9 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
   late Animal _animal = widget.animal;
 
   // 2. Aquí Clínica, Tratamientos y Cuidados agregan su historial.
-  List<Widget> _registros(Animal animal) => const [];
+  List<Widget> _registros(Animal animal) => [
+    HistorialClinico(animalId: animal.id),
+  ];
 
   // 3. Abre editar o dar de baja y vuelve a leer la ficha.
   Future<void> _abrir(Widget pantalla) async {
@@ -42,7 +45,7 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
     final tema = Theme.of(context).textTheme;
     final a = _animal;
     final rol = Granjas.instance.rol;
-    final puedeEditar = !a.deBaja && rol != RolMiembro.veterinario;
+    final puedeEditar = !a.deBaja;
     final puedeDarDeBaja = !a.deBaja && rol == RolMiembro.dueno;
 
     Widget dato(String etiqueta, String valor) => Padding(
@@ -91,7 +94,7 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
           Row(
             children: [
               if (puedeEditar)
-                Expanded(child: BotonSecundario(texto: 'Editar ficha', alPresionar: () => _abrir(EditarFichaScreen(animal: a)))),
+                Expanded(child: BotonSecundario(texto: rol == RolMiembro.veterinario ? 'Editar etapa' : 'Editar ficha', alPresionar: () => _abrir(EditarFichaScreen(animal: a)))),
               if (puedeEditar && puedeDarDeBaja) const SizedBox(width: 12),
               if (puedeDarDeBaja)
                 Expanded(

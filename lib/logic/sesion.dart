@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/granja.dart';
 import 'fichas.dart';
+import 'clinica.dart';
 import 'granjas.dart';
 import 'documentos.dart';
 
@@ -79,6 +80,7 @@ class Sesion {
     _auth = Supabase.instance.client.auth;
     Granjas.instance.conectar(Supabase.instance.client);
     Fichas.instance.conectar(Supabase.instance.client);
+    Clinica.instance.conectar(Supabase.instance.client);
 
     // 3.2. Escucha los enlaces con token_hash; el que abrió la app llega antes de escuchar, así que se pide aparte.
     final enlaces = AppLinks();

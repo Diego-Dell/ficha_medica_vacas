@@ -43,9 +43,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(acceso), findsOneWidget);
       expect(find.text('Los Pinos · ${rol.etiqueta}'), findsOneWidget);
-      // 1. Los registros llegan con los demás módulos del Sprint 2: sus accesos aún no abren nada.
+      // 1. Clínica y Reproducción ya están conectados; los demás módulos siguen pendientes.
       for (final tarjeta in tester.widgetList<Acceso>(find.byType(Acceso))) {
-        expect(tarjeta.alPresionar, isNull, reason: tarjeta.titulo);
+        final disponible = rol == RolMiembro.veterinario && ['Clínica', 'Reproducción'].contains(tarjeta.titulo);
+        expect(tarjeta.alPresionar, disponible ? isNotNull : isNull, reason: tarjeta.titulo);
       }
       // 2. Una sola forma de llegar a cada sección: la barra inferior.
       for (final pestana in ['Inicio', 'Ganado', 'Perfil']) {

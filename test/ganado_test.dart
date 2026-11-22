@@ -165,6 +165,7 @@ void main() {
     entrarALosPinos(rol: RolMiembro.veterinario);
     await abrir(tester, FichaAnimalScreen(animal: Animal.fromMap(lucera)));
     expect(find.text('Editar ficha'), findsNothing);
+    expect(find.text('Editar etapa'), findsOneWidget);
     expect(find.text('Dar de baja'), findsNothing);
   });
 
@@ -223,6 +224,33 @@ void main() {
     expect(pedidos.singleWhere((p) => p.method == 'PATCH').url.queryParameters['id'], 'eq.f1');
     expect(cuerpo(pedidos, 'PATCH')['nombre'], 'Lucerita');
     expect(cuerpo(pedidos, 'PATCH').containsKey('fecha_baja'), isFalse);
+  });
+
+  testWidgets('Veterinario edita solo etapa y conserva los demás datos', (tester) async {
+    entrarALosPinos(rol: RolMiembro.veterinario);
+    final pedidos = <http.BaseRequest>[];
+    simularDatos({'fichas_bovinas': const [lucera]}, pedidos: pedidos);
+    await abrir(tester, EditarFichaScreen(animal: Animal.fromMap(lucera)));
+    expect(find.text('Editar etapa'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    await etapa(tester, 'Vaquilla');
+    await tocar(tester, 'Guardar etapa');
+    expect(cuerpo(pedidos, 'PATCH'), {'etapa': 'vaquilla'});
+    expect(find.text('Registro guardado'), findsOneWidget);
+  });
+
+  testWidgets('Trabajador cambia nombre pero la etapa permanece bloqueada', (tester) async {
+    entrarALosPinos(rol: RolMiembro.trabajador);
+    final pedidos = <http.BaseRequest>[];
+    simularDatos({'fichas_bovinas': const [lucera]}, pedidos: pedidos);
+    await abrir(tester, EditarFichaScreen(animal: Animal.fromMap(lucera)));
+    expect(find.text('Etapa (solo consulta)'), findsOneWidget);
+    await etapa(tester, 'Vaquilla');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Lucerita');
+    await tocar(tester, 'Guardar ficha');
+    expect(cuerpo(pedidos, 'PATCH')['etapa'], 'vaca');
+    expect(cuerpo(pedidos, 'PATCH')['nombre'], 'Lucerita');
+    expect(find.text('Registro guardado'), findsOneWidget);
   });
 
   testWidgets('Nueva ficha rechaza una identificación repetida en la granja', (tester) async {

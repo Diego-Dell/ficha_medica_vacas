@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/animal.dart';
+import '../models/miembro.dart';
 import 'granjas.dart';
 
 // 1. Acceso único a las fichas del ganado (Singleton + Facade).
@@ -66,10 +67,29 @@ class Fichas {
       );
 
   // 5. Se edita por id, así los registros siguen vinculados.
-  Future<String?> actualizar(Animal animal) => _guardar(
+  Future<String?> actualizar(Animal animal) async {
+    if (Granjas.instance.rol == RolMiembro.veterinario) return 'El veterinario solo puede editar la etapa';
+    if (Granjas.instance.rol == RolMiembro.trabajador) {
+      try {
+        final actual = await porId(animal.id);
+        if (actual.etapa != animal.etapa) return 'El trabajador no puede cambiar la etapa';
+      } on Exception { return 'No se pudo comprobar la etapa actual'; }
+    }
+    return _guardar(
         api: () => _pedir('PUT', '/${animal.id}', cuerpo: animal.paraApi()),
         supabase: () => _db.from('fichas_bovinas').update(animal.datosGenerales()).eq('id', animal.id),
       );
+  }
+
+  Future<String?> actualizarEtapa(Animal animal, Etapa etapa) {
+    if (animal.deBaja || Granjas.instance.rol == RolMiembro.trabajador) {
+      return Future.value('Solo el dueño o veterinario pueden cambiar la etapa de una ficha activa');
+    }
+    return _guardar(
+      api: () => _pedir('PATCH', '/${animal.id}/etapa', cuerpo: {'etapa': etapa.etiqueta}),
+      supabase: () => _db.from('fichas_bovinas').update({'etapa': etapa.name}).eq('id', animal.id),
+    );
+  }
 
   Future<String?> darDeBaja(Animal animal, DateTime fecha, String motivo) {
     final dia = fecha.toIso8601String().substring(0, 10);
