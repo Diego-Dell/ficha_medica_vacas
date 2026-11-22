@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:ficha_medica_vacas/main_vista_previa.dart';
+import 'package:ficha_medica_vacas/screens/trabajador/cuidados_hoy_screen.dart';
 import 'package:ficha_medica_vacas/models/animal.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/ganado/dar_de_baja_screen.dart';
@@ -288,12 +288,13 @@ void main() {
     expect(form.currentState!.validate(), isTrue);
   });
 
-  testWidgets('La vista previa abre Nueva ficha desde la pestaña Ganado', (tester) async {
-    await tester.pumpWidget(const VistaPreviaApp());
-    await tester.tap(find.text('Trabajador'));
+  testWidgets('El trabajador abre Nueva ficha desde la pestaña Ganado', (tester) async {
+    entrarALosPinos(rol: RolMiembro.trabajador);
+    await tester.pumpWidget(const MaterialApp(home: CuidadosHoyScreen(granja: 'Los Pinos')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ganado'));
     await tester.pumpAndSettle();
+    expect(find.text('Lucera · 0842'), findsOneWidget);
     await tester.tap(find.text('Nueva ficha'));
     await tester.pumpAndSettle();
     expect(find.text('Los campos con * son obligatorios.'), findsOneWidget);

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ficha_medica_vacas/main_vista_previa.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
@@ -34,12 +33,16 @@ void main() {
   });
 
   testWidgets('Veterinario y trabajador ven sus accesos, la barra de íconos y cierran sesión desde Perfil', (tester) async {
-    await tester.pumpWidget(const VistaPreviaApp());
-    for (final (rol, acceso) in [('Veterinario', 'Clínica'), ('Trabajador', 'Observación')]) {
-      await tester.tap(find.text(rol));
+    for (final (rol, acceso) in [(RolMiembro.veterinario, 'Clínica'), (RolMiembro.trabajador, 'Observación')]) {
+      entrarALosPinos(rol: rol);
+      var salio = false;
+      final panel = rol == RolMiembro.veterinario
+          ? SeguimientoVeterinarioScreen(granja: 'Los Pinos', alCerrarSesion: () => salio = true)
+          : CuidadosHoyScreen(granja: 'Los Pinos', alCerrarSesion: () => salio = true);
+      await tester.pumpWidget(MaterialApp(key: UniqueKey(), home: panel));
       await tester.pumpAndSettle();
       expect(find.text(acceso), findsOneWidget);
-      expect(find.text('Los Pinos · $rol'), findsOneWidget);
+      expect(find.text('Los Pinos · ${rol.etiqueta}'), findsOneWidget);
       // 1. Los registros llegan con los demás módulos del Sprint 2: sus accesos aún no abren nada.
       for (final tarjeta in tester.widgetList<Acceso>(find.byType(Acceso))) {
         expect(tarjeta.alPresionar, isNull, reason: tarjeta.titulo);
@@ -52,7 +55,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();
-      expect(find.text('Vista previa'), findsOneWidget);
+      expect(salio, isTrue);
     }
   });
 
