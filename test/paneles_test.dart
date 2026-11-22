@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ficha_medica_vacas/main_vista_previa.dart';
+import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/trabajador/cuidados_hoy_screen.dart';
@@ -11,19 +12,19 @@ import 'apoyo.dart';
 import 'package:ficha_medica_vacas/widgets/panel_rol.dart';
 
 void main() {
-  testWidgets('Dueño, veterinario y trabajador permiten registrar otra granja desde el menú', (tester) async {
-    entrarALosPinos();
-    simularDatos(tablasEquipo);
-    for (final panel in <Widget>[
-      const MiGranjaScreen(),
-      const SeguimientoVeterinarioScreen(granja: 'Los Pinos'),
-      const CuidadosHoyScreen(granja: 'Los Pinos'),
+  testWidgets('Dueño, veterinario y trabajador registran otra granja desde Cambiar de granja', (tester) async {
+    for (final (rol, panel) in <(RolMiembro, Widget)>[
+      (RolMiembro.dueno, const MiGranjaScreen()),
+      (RolMiembro.veterinario, const SeguimientoVeterinarioScreen(granja: 'Los Pinos')),
+      (RolMiembro.trabajador, const CuidadosHoyScreen(granja: 'Los Pinos')),
     ]) {
+      entrarALosPinos(rol: rol);
+      simularDatos(tablasEquipo);
       await tester.pumpWidget(MaterialApp(key: UniqueKey(), home: panel));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Opciones'));
+      await tester.tap(find.byTooltip('Cambiar de granja'));
       await tester.pumpAndSettle();
-      expect(find.text('Mis granjas'), findsOneWidget);
+      expect(find.text('Cambiar de granja'), findsOneWidget);
       await tester.tap(find.text('Registrar otra granja'));
       await tester.pumpAndSettle();
       expect(find.byType(RegistrarOtraGranjaScreen), findsOneWidget);
@@ -32,23 +33,23 @@ void main() {
     }
   });
 
-  testWidgets('Los paneles de veterinario y trabajador muestran su acceso y cierran sesión', (tester) async {
+  testWidgets('Veterinario y trabajador ven sus accesos, la barra de íconos y cierran sesión desde Perfil', (tester) async {
     await tester.pumpWidget(const VistaPreviaApp());
-    for (final opcion in [
-      ('Veterinario', 'Clínica  ›'),
-      ('Trabajador', 'Observación  ›'),
-    ]) {
-      await tester.tap(find.text(opcion.$1));
+    for (final (rol, acceso) in [('Veterinario', 'Clínica'), ('Trabajador', 'Observación')]) {
+      await tester.tap(find.text(rol));
       await tester.pumpAndSettle();
-      expect(find.text(opcion.$2), findsOneWidget);
-      expect(find.text('Los Pinos · ${opcion.$1}'), findsOneWidget);
-      // 1. Ficha y Consulta ya abren las fichas del ganado (RF-02); el resto llega con los demás módulos del Sprint 2.
-      for (final tarjeta in tester.widgetList<OpcionPanel>(find.byType(OpcionPanel))) {
-        expect(tarjeta.alPresionar, ['Ficha', 'Consulta'].contains(tarjeta.titulo) ? isNotNull : isNull,
-            reason: tarjeta.titulo);
+      expect(find.text(acceso), findsOneWidget);
+      expect(find.text('Los Pinos · $rol'), findsOneWidget);
+      // 1. Los registros llegan con los demás módulos del Sprint 2: sus accesos aún no abren nada.
+      for (final tarjeta in tester.widgetList<Acceso>(find.byType(Acceso))) {
+        expect(tarjeta.alPresionar, isNull, reason: tarjeta.titulo);
       }
-      expect(find.text('Reportes'), opcion.$1 == 'Trabajador' ? findsNothing : findsOneWidget);
-      expect(find.byTooltip('Opciones'), findsOneWidget);
+      // 2. Una sola forma de llegar a cada sección: la barra inferior.
+      for (final pestana in ['Inicio', 'Ganado', 'Perfil']) {
+        expect(find.descendant(of: find.byType(NavigationBar), matching: find.text(pestana)), findsOneWidget);
+      }
+      await tester.tap(find.text('Perfil'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();
       expect(find.text('Vista previa'), findsOneWidget);
@@ -56,35 +57,26 @@ void main() {
   });
 
   for (final ancho in [360.0, 390.0]) {
-    testWidgets(
-      'Paneles sin desbordamientos y encabezados alineados a $ancho',
-      (tester) async {
-        tester.view.physicalSize = Size(ancho, 844);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-        entrarALosPinos();
-        simularDatos(tablasEquipo);
-        Offset? logo, titulo;
-        for (final pantalla in <(Widget, String)>[
-          (
-            const SeguimientoVeterinarioScreen(granja: 'Los Pinos'),
-            'Mi granja',
-          ),
-          (const CuidadosHoyScreen(granja: 'Los Pinos'), 'Mi granja'),
-          (const MiGranjaScreen(), 'Mi granja'),
-          (const AdministracionScreen(), 'Administración'),
-        ]) {
-          await tester.pumpWidget(MaterialApp(home: pantalla.$1));
-          await tester.pumpAndSettle();
-          final marca = tester.getTopLeft(find.text('VetLink'));
-          final cabecera = tester.getTopLeft(find.text(pantalla.$2));
-          logo ??= marca;
-          titulo ??= cabecera;
-          expect(marca, logo);
-          expect(cabecera, titulo);
-          expect(tester.takeException(), isNull);
-        }
-      },
-    );
+    testWidgets('Inicios sin desbordamientos y saludo alineado a $ancho', (tester) async {
+      tester.view.physicalSize = Size(ancho, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      entrarALosPinos();
+      simularDatos(tablasEquipo);
+      Offset? saludo;
+      for (final pantalla in <Widget>[
+        const SeguimientoVeterinarioScreen(granja: 'Los Pinos'),
+        const CuidadosHoyScreen(granja: 'Los Pinos'),
+        const MiGranjaScreen(),
+        const AdministracionScreen(),
+      ]) {
+        await tester.pumpWidget(MaterialApp(home: pantalla));
+        await tester.pumpAndSettle();
+        final posicion = tester.getTopLeft(find.textContaining('Hola'));
+        saludo ??= posicion;
+        expect(posicion, saludo);
+        expect(tester.takeException(), isNull);
+      }
+    });
   }
 }

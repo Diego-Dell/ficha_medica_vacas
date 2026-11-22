@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:ficha_medica_vacas/main_vista_previa.dart';
 import 'package:ficha_medica_vacas/models/animal.dart';
+import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/ganado/dar_de_baja_screen.dart';
 import 'package:ficha_medica_vacas/screens/ganado/editar_ficha_screen.dart';
 import 'package:ficha_medica_vacas/screens/ganado/ficha_animal_screen.dart';
@@ -52,6 +53,7 @@ Future<void> abrir(WidgetTester tester, Widget pantalla) async {
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
+      key: UniqueKey(),
       home: Scaffold(
         body: Builder(
           builder: (context) => TextButton(
@@ -81,6 +83,12 @@ Future<void> elegir<T>(WidgetTester tester, String opcion, {int indice = 0}) asy
   await tester.pumpAndSettle();
 }
 
+// 2. Toca una etapa en el filtro o en el selector del formulario.
+Future<void> etapa(WidgetTester tester, String nombre) async {
+  await tester.tap(find.text(nombre).last);
+  await tester.pumpAndSettle();
+}
+
 Map<String, dynamic> cuerpo(List<http.BaseRequest> pedidos, String metodo) =>
     jsonDecode((pedidos.singleWhere((p) => p.method == metodo) as http.Request).body) as Map<String, dynamic>;
 
@@ -92,32 +100,33 @@ void main() {
     });
   });
 
-  testWidgets('Consulta lista también las bajas y filtra por texto y etapa', (tester) async {
+  testWidgets('Ganado lista también las bajas y filtra por texto y etapa', (tester) async {
     final pedidos = <http.BaseRequest>[];
     simularDatos({
       'fichas_bovinas': [lucera, rosa, vendida],
     }, pedidos: pedidos);
     await abrir(tester, const GanadoScreen());
-    expect(find.text('Consulta y supervisión'), findsOneWidget);
-    expect(find.text('Lucera · 0842  ›'), findsOneWidget);
-    expect(find.text('Vaca · Holstein'), findsOneWidget);
-    expect(find.text('Vaca · Holstein · De baja'), findsOneWidget);
+    expect(find.text('Ganado'), findsOneWidget);
+    expect(find.text('Lucera · 0842'), findsOneWidget);
+    expect(find.text('Vaca · Holstein'), findsNWidgets(2));
+    expect(find.text('De baja'), findsOneWidget);
+    expect(find.text('2 animales · 1 de baja'), findsOneWidget);
     final consulta = pedidos.single.url.queryParameters;
     expect(consulta['granja_id'], 'eq.g1');
     expect(consulta.containsKey('fecha_baja'), isFalse);
 
     await tester.enterText(find.byType(TextField).first, 'luc');
     await tester.pump();
-    expect(find.text('0900  ›'), findsNothing);
-    expect(find.text('Lucera · 0842  ›'), findsOneWidget);
+    expect(find.text('0900'), findsNothing);
+    expect(find.text('Lucera · 0842'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).first, '');
-    await elegir<Etapa?>(tester, 'Vaquilla');
-    expect(find.text('0900  ›'), findsOneWidget);
-    expect(find.text('Lucera · 0842  ›'), findsNothing);
+    await etapa(tester, 'Vaquilla');
+    expect(find.text('0900'), findsOneWidget);
+    expect(find.text('Lucera · 0842'), findsNothing);
   });
 
-  testWidgets('Consulta permite reintentar si no carga', (tester) async {
+  testWidgets('Ganado permite reintentar si no carga', (tester) async {
     simularDatos(const {}, sinRed: true);
     await abrir(tester, const GanadoScreen());
     await tester.pump(const Duration(minutes: 1));
@@ -126,37 +135,61 @@ void main() {
       'fichas_bovinas': const [lucera],
     });
     await tocar(tester, 'No se pudieron cargar los animales. Reintentar');
-    expect(find.text('Lucera · 0842  ›'), findsOneWidget);
+    expect(find.text('Lucera · 0842'), findsOneWidget);
   });
 
-  testWidgets('La ficha activa muestra su estado y datos', (tester) async {
+  testWidgets('Nueva ficha solo aparece para dueño y trabajador', (tester) async {
+    await abrir(tester, const GanadoScreen());
+    expect(find.text('Nueva ficha'), findsOneWidget);
+    entrarALosPinos(rol: RolMiembro.veterinario);
+    await abrir(tester, const GanadoScreen());
+    expect(find.text('Nueva ficha'), findsNothing);
+  });
+
+  testWidgets('La ficha activa muestra sus datos y las acciones según el rol', (tester) async {
     await abrir(tester, FichaAnimalScreen(animal: Animal.fromMap(lucera)));
-    expect(find.text('Ficha e historial sanitario.'), findsOneWidget);
     expect(find.text('Activa · Vaca'), findsOneWidget);
-    expect(find.text('Holstein · Nacimiento: 15/03/2023 (estimado)'), findsOneWidget);
+    expect(find.text('15/03/2023 · Estimado'), findsOneWidget);
+    expect(find.text('Holstein'), findsOneWidget);
+    expect(find.text('Editar ficha'), findsOneWidget);
+    expect(find.text('Dar de baja'), findsOneWidget);
     expect(find.text('Volver a la granja'), findsNothing);
+    await tocar(tester, 'Dar de baja');
+    expect(find.byType(DarDeBajaScreen), findsOneWidget);
+
+    entrarALosPinos(rol: RolMiembro.trabajador);
+    await abrir(tester, FichaAnimalScreen(animal: Animal.fromMap(lucera)));
+    expect(find.text('Editar ficha'), findsOneWidget);
+    expect(find.text('Dar de baja'), findsNothing);
+
+    entrarALosPinos(rol: RolMiembro.veterinario);
+    await abrir(tester, FichaAnimalScreen(animal: Animal.fromMap(lucera)));
+    expect(find.text('Editar ficha'), findsNothing);
+    expect(find.text('Dar de baja'), findsNothing);
   });
 
   testWidgets('La ficha dada de baja se conserva y vuelve a la granja', (tester) async {
     await abrir(tester, FichaAnimalScreen(animal: Animal.fromMap(vendida)));
     expect(find.text('Ficha conservada después de la baja.'), findsOneWidget);
     expect(find.text('De baja · 01/11/2026'), findsOneWidget);
-    expect(find.text('Motivo: Venta del animal.'), findsOneWidget);
+    expect(find.text('Venta del animal'), findsOneWidget);
     expect(find.text('Esta ficha no admite nuevos eventos.'), findsOneWidget);
+    expect(find.text('Editar ficha'), findsNothing);
     await tocar(tester, 'Volver a la granja');
     expect(find.text('inicio'), findsOneWidget);
   });
 
-  testWidgets('Ficha valida los obligatorios y crea con "Registro guardado"', (tester) async {
+  testWidgets('Nueva ficha valida los obligatorios y crea con "Registro guardado"', (tester) async {
     final pedidos = <http.BaseRequest>[];
     simularDatos(const {}, pedidos: pedidos);
     await abrir(tester, const EditarFichaScreen());
+    expect(find.text('Nueva ficha'), findsOneWidget);
     await tocar(tester, 'Guardar ficha');
     expect(find.text('Campo obligatorio'), findsNWidgets(2));
     expect(pedidos.where((p) => p.method == 'POST'), isEmpty);
 
     await tester.enterText(find.byType(TextFormField).at(0), ' 0950 ');
-    await elegir<Etapa>(tester, 'Ternera');
+    await etapa(tester, 'Ternera');
     await tocar(tester, 'Guardar ficha');
     expect(cuerpo(pedidos, 'POST'), {
       'identificacion': '0950',
@@ -168,28 +201,23 @@ void main() {
       'granja_id': 'g1',
     });
     expect(find.text('Registro guardado'), findsOneWidget);
-    expect(find.text('Se conservan las relaciones y la autoría.'), findsOneWidget);
+    expect(find.text('La información de Los Pinos se guardó correctamente.'), findsOneWidget);
     await tocar(tester, 'Continuar');
     expect(find.text('inicio'), findsOneWidget);
   });
 
-  testWidgets('Ficha carga una existente, la vacía y actualiza por id', (tester) async {
+  testWidgets('Editar ficha carga los datos y actualiza por id', (tester) async {
     final pedidos = <http.BaseRequest>[];
     simularDatos({
-      'fichas_bovinas': const [lucera, rosa],
+      'fichas_bovinas': const [lucera],
     }, pedidos: pedidos);
-    await abrir(tester, const EditarFichaScreen());
+    await abrir(tester, EditarFichaScreen(animal: Animal.fromMap(lucera)));
     String campo(int i) => tester.widget<TextFormField>(find.byType(TextFormField).at(i)).controller!.text;
-
-    await elegir<String?>(tester, 'Lucera · 0842');
+    expect(find.text('Editar ficha'), findsOneWidget);
     expect([campo(0), campo(1), campo(2)], ['0842', 'Lucera', 'Holstein']);
     expect(find.text('15/03/2023'), findsOneWidget);
     expect(find.text('Estimado'), findsOneWidget);
 
-    await elegir<String?>(tester, 'Nueva ficha');
-    expect([campo(0), campo(1), campo(2)], ['', '', '']);
-
-    await elegir<String?>(tester, 'Lucera · 0842');
     await tester.enterText(find.byType(TextFormField).at(1), 'Lucerita');
     await tocar(tester, 'Guardar ficha');
     expect(pedidos.singleWhere((p) => p.method == 'PATCH').url.queryParameters['id'], 'eq.f1');
@@ -197,32 +225,31 @@ void main() {
     expect(cuerpo(pedidos, 'PATCH').containsKey('fecha_baja'), isFalse);
   });
 
-  testWidgets('Ficha rechaza una identificación repetida en la granja', (tester) async {
+  testWidgets('Nueva ficha rechaza una identificación repetida en la granja', (tester) async {
     simularDatos(const {}, errorAlGuardar: '23505');
     await abrir(tester, const EditarFichaScreen());
     await tester.enterText(find.byType(TextFormField).at(0), '0842');
-    await elegir<Etapa>(tester, 'Vaca');
+    await etapa(tester, 'Vaca');
     await tocar(tester, 'Guardar ficha');
     expect(find.text('Ya existe un animal con esa identificación en esta granja'), findsOneWidget);
     expect(find.text('Registro guardado'), findsNothing);
   });
 
-  testWidgets('Baja pide animal y motivo, confirma y muestra la ficha conservada', (tester) async {
+  testWidgets('Baja pide motivo, confirma y vuelve a la ficha', (tester) async {
     final pedidos = <http.BaseRequest>[];
     simularDatos({
       'fichas_bovinas': const [lucera],
     }, pedidos: pedidos);
-    await abrir(tester, const DarDeBajaScreen());
+    await abrir(tester, DarDeBajaScreen(animal: Animal.fromMap(lucera)));
     expect(find.text('Baja del animal'), findsOneWidget);
+    expect(find.text('Lucera · 0842'), findsOneWidget);
     await tocar(tester, 'Confirmar baja');
-    expect(find.text('Elegí un animal'), findsOneWidget);
     expect(find.text('Campo obligatorio'), findsOneWidget);
 
-    await elegir<String>(tester, 'Lucera · 0842');
     await tester.enterText(find.byType(TextFormField), ' Venta del animal ');
     await tocar(tester, 'Confirmar baja');
     expect(find.text('¿Confirmar la baja?'), findsOneWidget);
-    expect(find.text('Lucera · 0842 · Los Pinos'), findsOneWidget);
+    expect(find.textContaining('Lucera · 0842 · Los Pinos'), findsOneWidget);
     await tocar(tester, 'Cancelar');
     expect(pedidos.where((p) => p.method == 'PATCH'), isEmpty);
 
@@ -231,17 +258,15 @@ void main() {
     final datos = cuerpo(pedidos, 'PATCH');
     expect(datos['motivo_baja'], 'Venta del animal');
     expect(datos['fecha_baja'], matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')));
-    expect(pedidos.last.url.queryParameters['id'], 'eq.f1', reason: 'vuelve a leer la ficha');
-    expect(find.byType(FichaAnimalScreen), findsOneWidget);
     expect(find.text('Baja del animal'), findsNothing);
+    expect(find.text('inicio'), findsOneWidget);
   });
 
   testWidgets('Baja avisa si la base la rechaza', (tester) async {
     simularDatos({
       'fichas_bovinas': const [lucera],
     }, errorAlGuardar: '42501');
-    await abrir(tester, const DarDeBajaScreen());
-    await elegir<String>(tester, 'Lucera · 0842');
+    await abrir(tester, DarDeBajaScreen(animal: Animal.fromMap(lucera)));
     await tester.enterText(find.byType(TextFormField), 'Muerte');
     await tocar(tester, 'Confirmar baja');
     await tocar(tester, 'Sí, dar de baja');
@@ -263,13 +288,15 @@ void main() {
     expect(form.currentState!.validate(), isTrue);
   });
 
-  testWidgets('La vista previa abre Ficha sin romperse', (tester) async {
+  testWidgets('La vista previa abre Nueva ficha desde la pestaña Ganado', (tester) async {
     await tester.pumpWidget(const VistaPreviaApp());
     await tester.tap(find.text('Trabajador'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Ficha  ›'));
+    await tester.tap(find.text('Ganado'));
     await tester.pumpAndSettle();
-    expect(find.text('Creá una ficha o seleccioná una para actualizarla.'), findsOneWidget);
+    await tester.tap(find.text('Nueva ficha'));
+    await tester.pumpAndSettle();
+    expect(find.text('Los campos con * son obligatorios.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

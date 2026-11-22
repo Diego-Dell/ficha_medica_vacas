@@ -18,7 +18,7 @@ import 'apoyo.dart';
 void main() {
   final filas = [filaLosPinos, {...filaLosPinos,'id':'g2','nombre':'Granja 2','confirmada':false}];
   Future<void> menu(WidgetTester tester) async {
-    await tester.tap(find.byTooltip('Opciones'));
+    await tester.tap(find.byTooltip('Cambiar de granja'));
     await tester.pumpAndSettle();
   }
   Future<void> tocar(WidgetTester tester,String texto) async {
@@ -27,19 +27,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Administrador inicia con dos tarjetas generales y lista todas las granjas sin registrar otra', (tester) async {
+  testWidgets('Administrador inicia con las solicitudes y lista todas las granjas sin registrar otra', (tester) async {
     final pedidos=<http.BaseRequest>[];
     simularDatos({'granjas':filas},pedidos:pedidos);
     await tester.pumpWidget(const MaterialApp(home:AdministracionScreen()));
     await tester.pumpAndSettle();
-    expect(find.byType(OpcionPanel),findsNWidgets(2));
-    expect(find.text('Cuentas y accesos  ›'),findsOneWidget);
-    expect(find.text('Confirmar granjas  ›'),findsOneWidget);
-    expect(find.text('Ganado e historial  ›'),findsNothing);
+    expect(find.text('Cuentas y accesos'),findsOneWidget);
+    expect(find.text('Confirmar granjas'),findsNothing);
+    expect(find.text('Ganado e historial'),findsNothing);
     await menu(tester);
     expect(find.text('Cambiar de granja'),findsOneWidget);
-    expect(find.text('Los Pinos'),findsOneWidget);
-    expect(find.text('Granja 2'),findsOneWidget);
+    expect(find.descendant(of:find.byType(Drawer),matching:find.text('Los Pinos')),findsOneWidget);
+    expect(find.descendant(of:find.byType(Drawer),matching:find.text('Granja 2')),findsOneWidget);
     expect(find.text('Registrar otra granja'),findsNothing);
     expect(pedidos.any((p)=>p.url.path.endsWith('/granjas') && !p.url.queryParameters.containsKey('confirmada')),isTrue);
     expect(pedidos.where((p)=>p.url.path.endsWith('/vinculaciones')),isEmpty);
@@ -52,21 +51,20 @@ void main() {
       await tester.pumpAndSettle();
       await menu(tester);
       await tocar(tester,nombre);
-      expect(find.text('Administración'),findsOneWidget);
-      expect(find.text('Administrador'),findsOneWidget);
+      expect(find.text('$nombre · Administrador'),findsOneWidget);
       expect(find.text('Operaciones en $nombre'),findsOneWidget);
-      expect(find.byType(OpcionPanel),findsNWidgets(4));
+      expect(find.byType(Acceso),findsNWidgets(2));
       expect(find.byType(MiGranjaScreen),findsNothing);
       expect(find.byType(GranjaRevisionScreen),findsNothing);
       await tocar(tester,'Volver a gestión general');
       expect(find.text('Operaciones en $nombre'),findsNothing);
-      expect(find.byType(OpcionPanel),findsNWidgets(2));
+      expect(find.byType(Acceso),findsNothing);
       await menu(tester);
       await tocar(tester,nombre);
       await menu(tester);
       await tocar(tester,'Gestión general');
-      expect(find.byType(OpcionPanel),findsNWidgets(2));
-      expect(find.text('Todas las granjas'),findsOneWidget);
+      expect(find.byType(Acceso),findsNothing);
+      expect(find.text('Todas las granjas · Administrador'),findsOneWidget);
     });
   }
 

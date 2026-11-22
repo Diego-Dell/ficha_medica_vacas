@@ -139,25 +139,28 @@ void main() {
   testWidgets('Mi granja oculta al trabajador las opciones del dueño', (tester) async {
     entrarALosPinos(rol: RolMiembro.trabajador);
     await abrir(tester, const MiGranjaScreen());
-    expect(find.text('Trabajador'), findsOneWidget);
-    expect(find.text('Gestionar miembros  ›'), findsNothing);
+    expect(find.text('Los Pinos · Trabajador'), findsOneWidget);
+    expect(find.text('Equipo'), findsNothing);
     expect(find.text('Registrar otra granja'), findsNothing);
     expect(find.text('Reportes'), findsNothing);
-    await tester.tap(find.byTooltip('Opciones'));
+    await tester.tap(find.byTooltip('Cambiar de granja'));
     await tester.pumpAndSettle();
     expect(find.text('Registrar otra granja'), findsOneWidget);
   });
 
-  testWidgets('Mi granja muestra las tarjetas y registra otra granja desde el menú', (tester) async {
+  testWidgets('Mi granja muestra resumen y equipo, una sola ruta por sección y registra otra granja', (tester) async {
     await abrir(tester, const MiGranjaScreen());
-    expect(find.text('Gestionar miembros  ›'), findsOneWidget);
+    expect(find.text('Operaciones de la granja'), findsOneWidget);
+    expect(find.text('Equipo'), findsOneWidget);
     expect(find.text('Registrar otra granja'), findsNothing);
-    expect(find.text('Cerrar sesión'), findsOneWidget);
-    expect(find.text('Mis granjas'), findsNothing);
-    for (final tarjeta in ['Ficha  ›', 'Baja del animal  ›', 'Búsqueda  ›', 'Avisos', 'Reportes']) {
-      expect(find.text(tarjeta), findsOneWidget);
+    // 1. Ficha, baja y búsqueda viven en la pestaña Ganado; cerrar sesión en Perfil.
+    for (final repetida in ['Ficha', 'Baja del animal', 'Búsqueda', 'Cerrar sesión']) {
+      expect(find.text(repetida), findsNothing, reason: repetida);
     }
-    await tester.tap(find.byTooltip('Opciones'));
+    for (final pestana in ['Inicio', 'Ganado', 'Perfil']) {
+      expect(find.text(pestana), findsOneWidget);
+    }
+    await tester.tap(find.byTooltip('Cambiar de granja'));
     await tester.pumpAndSettle();
     expect(find.text('Registrar otra granja'), findsOneWidget);
     await tocar(tester, 'Registrar otra granja');
@@ -167,14 +170,15 @@ void main() {
   testWidgets('Miembros muestra el equipo y la invitación pendiente', (tester) async {
     simularDatos(tablasEquipo);
     await abrir(tester, const MiGranjaScreen());
-    await tocar(tester, 'Gestionar miembros  ›');
+    await tocar(tester, 'Equipo');
     expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
     expect(find.text('Sofía Rojas · Veterinario'), findsOneWidget);
     expect(find.text('luis@ejemplo.com · Trabajador'), findsOneWidget, reason: 'sin nombre usa el correo');
     expect(find.text('Invitación pendiente'), findsOneWidget);
     expect(find.textContaining('maria@ejemplo.com · Trabajador'), findsOneWidget);
-    await tocar(tester, 'Volver', atajo: true);
-    expect(find.text('Mi granja'), findsOneWidget);
+    await tester.tap(find.byTooltip('Volver'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MiGranjaScreen), findsOneWidget);
   });
 
   testWidgets('Miembros permite reintentar si no carga', (tester) async {
@@ -311,15 +315,15 @@ void main() {
       'granjas': [santaRosa],
     }, pedidos: pedidos);
     await abrir(tester, const AdministracionScreen());
-    expect(find.text('1 granja por confirmar'), findsOneWidget);
+    expect(find.text('granja por confirmar'), findsOneWidget);
     expect(find.text('Mis granjas'), findsNothing);
     final lista = pedidos.singleWhere((p) => p.url.pathSegments.last == 'granjas');
     expect(lista.url.queryParameters['confirmada'], 'eq.false');
     expect(lista.url.queryParameters['select'], contains('vinculaciones'));
 
-    await tocar(tester, 'Confirmar granjas  ›');
+    await tocar(tester, 'Santa Rosa');
     expect(find.text('Dueño: Ana Pérez · ana@ejemplo.com\nRUNSA: SC-02418'), findsOneWidget);
-    await tocar(tester, 'Santa Rosa · Pendiente  ›');
+    await tocar(tester, 'Santa Rosa · Pendiente');
     expect(find.text('Confirmar granja'), findsOneWidget);
     expect(find.text('Dueño: Ana Pérez · ana@ejemplo.com'), findsOneWidget);
     expect(find.text('Superficie: 12.50 ha'), findsOneWidget);
@@ -341,13 +345,14 @@ void main() {
       ],
     }, errorAlGuardar: '42501');
     await abrir(tester, const AdministracionScreen());
-    await tocar(tester, 'Confirmar granjas  ›');
+    await tocar(tester, 'Santa Rosa');
     expect(find.text('Dueño: No disponible\nRUNSA: SC-02418'), findsOneWidget);
-    await tocar(tester, 'Santa Rosa · Pendiente  ›');
+    await tocar(tester, 'Santa Rosa · Pendiente');
     await tocar(tester, 'Confirmar registro');
     expect(find.text('No se pudo confirmar la granja'), findsOneWidget);
     expect(find.text('Confirmar granja'), findsOneWidget);
-    await tocar(tester, 'Volver');
+    await tester.tap(find.byTooltip('Volver'));
+    await tester.pumpAndSettle();
     expect(find.text('1 granja por confirmar'), findsOneWidget);
 
     simularDatos(const {}, sinRed: true);
@@ -359,8 +364,8 @@ void main() {
       'granjas': [santaRosa],
     });
     await tocar(tester, 'No se pudieron cargar las granjas. Reintentar');
-    await tocar(tester, 'Confirmar granjas  ›');
-    expect(find.text('Santa Rosa · Pendiente  ›'), findsOneWidget);
+    await tocar(tester, 'Santa Rosa');
+    expect(find.text('Santa Rosa · Pendiente'), findsOneWidget);
   });
 
   testWidgets('Granja en revisión muestra los datos y vuelve al login', (tester) async {

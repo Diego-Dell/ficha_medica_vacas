@@ -124,7 +124,7 @@ void main() {
     expect(enviado['email'], correo);
     expect(enlace.queryParameters['redirect_to'], 'vetlink://restablecer');
     expect(find.text('Si el correo tiene una cuenta, te enviamos el enlace'), findsOneWidget);
-    await tocar(tester, '‹ Volver');
+    await tester.tap(find.byTooltip('Volver'));
     await tester.pumpAndSettle();
     expect(find.text('Bienvenido a VetLink'), findsOneWidget);
   });
@@ -257,7 +257,7 @@ void main() {
     });
     await ingresar(tester, 'clave');
     expect(enviado['email'], correo);
-    expect(find.text('Mi granja'), findsOneWidget);
+    expect(find.byType(MiGranjaScreen), findsOneWidget);
     expect(find.text('Los Pinos · Dueño'), findsOneWidget);
     expect(Sesion.instance.iniciada, isTrue);
   });
@@ -282,8 +282,8 @@ void main() {
     expect(jsonDecode(rpc.body), {'p_invitacion': 'i1'});
     expect(find.byType(CuidadosHoyScreen), findsOneWidget);
     expect(find.byType(MiGranjaScreen), findsNothing);
-    expect(find.text('Mi granja'), findsOneWidget);
-    expect(find.text('Gestionar miembros  ›'), findsNothing);
+    expect(find.text('Los Pinos · Trabajador'), findsOneWidget);
+    expect(find.text('Equipo'), findsNothing);
   });
 
   testWidgets('si la invitación ya no está vigente avisa y sigue entrando', (tester) async {
@@ -331,7 +331,7 @@ void main() {
     expect(find.byType(MiGranjaScreen), findsNothing);
     expect(find.text('Tu cuenta todavía no tiene una granja'), findsNothing);
     expect(pedidos.map((p) => p.url.pathSegments.last), ['es_administrador', 'granjas']);
-    expect(find.text('1 granja por confirmar'), findsOneWidget);
+    expect(find.text('granja por confirmar'), findsOneWidget);
   });
 
   testWidgets('si no se puede verificar el rol no abre ningún panel', (tester) async {
@@ -420,16 +420,14 @@ void main() {
     expect(tester.widget<SeguimientoVeterinarioScreen>(find.byType(SeguimientoVeterinarioScreen)).granja, 'Santa Rosa');
     expect(Granjas.instance.rol, RolMiembro.veterinario);
 
-    await tester.tap(find.byTooltip('Opciones'));
+    await tester.tap(find.byTooltip('Cambiar de granja'));
     await tester.pumpAndSettle();
-
-    await tester.pumpAndSettle();
-    expect(find.text('Granja actual'), findsOneWidget);
+    expect(find.text('Cambiar de granja'), findsOneWidget);
     await tocar(tester, 'Los Pinos');
     await tester.pumpAndSettle();
     expect(find.byType(MiGranjaScreen), findsOneWidget);
     expect(Granjas.instance.rol, RolMiembro.dueno);
-    expect(find.text('Gestionar miembros  ›'), findsOneWidget);
+    expect(find.text('Equipo'), findsOneWidget);
     expect(find.byType(SeguimientoVeterinarioScreen), findsNothing);
     expect(find.byType(SeleccionarGranjaScreen), findsNothing);
   });
@@ -644,6 +642,8 @@ void main() {
     });
     await ingresar(tester, 'clave');
     expect(find.byType(CuidadosHoyScreen), findsOneWidget);
+    await tocar(tester, 'Perfil');
+    await tester.pumpAndSettle();
     await tocar(tester, 'Cerrar sesión');
     await tester.pumpAndSettle();
     expect(rutas.where((ruta) => ruta.endsWith('logout')), hasLength(1));

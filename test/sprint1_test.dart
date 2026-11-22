@@ -135,8 +135,8 @@ void main() {
           const MaterialApp(home: AdministracionScreen()),
         );
         await tester.pumpAndSettle();
-        await tocar(tester, 'Confirmar granjas  ›');
-        await tocar(tester, 'Los Pinos · Pendiente  ›');
+        await tocar(tester, 'Los Pinos');
+        await tocar(tester, 'Los Pinos · Pendiente');
         await tocar(tester, 'Rechazar solicitud');
         await tocar(tester, 'Rechazar');
         expect(find.text('Campo obligatorio'), findsOneWidget);
