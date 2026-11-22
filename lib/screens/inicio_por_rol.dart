@@ -8,9 +8,12 @@ import 'trabajador/cuidados_hoy_screen.dart';
 import 'veterinario/seguimiento_veterinario_screen.dart';
 import 'administrador/administracion_screen.dart';
 
-/// 1. Crea la pantalla de inicio que corresponde a cada vínculo (patrón Factory); quien entra a una granja no necesita conocer los roles.
+// 1. Elige la pantalla de inicio según el rol (Factory).
 abstract final class InicioPorRol {
-  /// 2. Conserva el panel del administrador; los demás roles esperan la confirmación de la granja.
+  // 2. Nombre de la ruta de inicio, para volver a ella.
+  static const ruta = 'inicio';
+
+  // 3. El administrador va a su panel; sin confirmar, a la revisión.
   static Widget crear(Vinculo vinculo) {
     if (Granjas.instance.sesionAdministradora) return AdministracionScreen(granja: vinculo.granja);
     if (!vinculo.granja.confirmada) return GranjaRevisionScreen(granja: vinculo.granja);
@@ -21,12 +24,12 @@ abstract final class InicioPorRol {
     };
   }
 
-  /// 3. Guarda la granja confirmada con su rol y abre su inicio, dejando solo el login detrás.
+  // 4. Guarda granja y rol y abre el inicio sobre el login.
   static void entrar(BuildContext context, Vinculo vinculo) {
     if (vinculo.granja.confirmada && !Granjas.instance.sesionAdministradora) Granjas.instance.seleccionar(vinculo);
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => crear(vinculo)),
+      MaterialPageRoute(settings: const RouteSettings(name: ruta), builder: (_) => crear(vinculo)),
       (ruta) => ruta.isFirst,
     );
   }
