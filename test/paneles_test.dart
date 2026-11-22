@@ -43,9 +43,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(acceso), findsOneWidget);
       expect(find.text('Los Pinos · ${rol.etiqueta}'), findsOneWidget);
-      // 1. Clínica y Reproducción ya están conectados; los demás módulos siguen pendientes.
+      // Clínica y Reproducción están disponibles para el veterinario;
+      // Observación y Aplicación están disponibles para el trabajador.
       for (final tarjeta in tester.widgetList<Acceso>(find.byType(Acceso))) {
-        final disponible = rol == RolMiembro.veterinario && ['Clínica', 'Reproducción'].contains(tarjeta.titulo);
+        final disponible =
+            (rol == RolMiembro.veterinario &&
+                ['Clínica', 'Reproducción'].contains(tarjeta.titulo)) ||
+            rol == RolMiembro.trabajador;
         expect(tarjeta.alPresionar, disponible ? isNotNull : isNull, reason: tarjeta.titulo);
       }
       // 2. Una sola forma de llegar a cada sección: la barra inferior.
