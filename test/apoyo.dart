@@ -92,8 +92,16 @@ void simularDatos(
         return http.Response.bytes(utf8.encode(jsonEncode(tablas['invitaciones'] ?? [])), 200,
           request: pedido, headers: {'content-type': 'application/json; charset=utf-8'});
       }
+      var datos = tablas[nombre] ?? (nombre == 'es_administrador' ? false : const []);
+      // 3. Una consulta .single() recibe la fila con ese id, o la primera.
+      final filas = datos;
+      if ((pedido.headers['Accept'] ?? '').contains('vnd.pgrst.object') && filas is List && filas.isNotEmpty) {
+        final id = pedido.url.queryParameters['id']?.replaceFirst('eq.', '');
+        final lista = filas.cast<Map<String, dynamic>>();
+        datos = lista.firstWhere((f) => f['id'] == id, orElse: () => lista.first);
+      }
       return http.Response.bytes(
-        utf8.encode(jsonEncode(tablas[nombre] ?? (nombre == 'es_administrador' ? false : const []))),
+        utf8.encode(jsonEncode(datos)),
         200,
         request: pedido,
         headers: {'content-type': 'application/json; charset=utf-8'},
