@@ -19,7 +19,12 @@ class FichaAnimalScreen extends StatefulWidget {
 class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
   late Animal _animal = widget.animal;
 
-  /// 1. Abre una pantalla y, si guardó cambios, vuelve a leer la ficha.
+  /// 1. Registros del animal: aquí Clínica, Tratamientos y Cuidados agregan su OpcionPanel.
+  /// Reciben el animal para abrir su pantalla con él ya elegido; los antecedentes se consultan
+  /// siempre, y los registros nuevos solo si el animal no está dado de baja.
+  List<Widget> _registros(Animal animal) => const [];
+
+  /// 2. Abre una pantalla y, si guardó cambios, vuelve a leer la ficha.
   Future<void> _abrir(Widget pantalla) async {
     final cambio = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => pantalla));
     if (cambio != true || !mounted) return;
@@ -106,6 +111,16 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
             ],
           ),
         ),
+        if (_registros(a).isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Registros del animal',
+              style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
+            ),
+          ),
+          ..._registros(a),
+        ],
         if (!a.deBaja && Fichas.instance.puedeEditar)
           BotonPrincipal(texto: 'Editar datos', alPresionar: () => _abrir(EditarFichaScreen(animal: a))),
         if (!a.deBaja && Fichas.instance.puedeDarDeBaja)
