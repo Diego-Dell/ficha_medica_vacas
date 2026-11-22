@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:ficha_medica_vacas/main_vista_previa.dart';
 import 'package:ficha_medica_vacas/models/animal.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/ganado/editar_ficha_screen.dart';
@@ -157,9 +158,10 @@ void main() {
       ),
     );
     await tocar(tester, 'inicio');
+    expect(find.text('Ficha'), findsOneWidget);
     await tocar(tester, 'Guardar ficha');
     expect(find.text('Campo obligatorio'), findsNWidgets(2));
-    expect(pedidos, isEmpty);
+    expect(pedidos.where((p) => p.method == 'POST'), isEmpty);
 
     await tester.enterText(find.byType(TextFormField).at(0), ' 0950 ');
     await tester.enterText(find.byType(TextFormField).at(1), ' ');
@@ -192,6 +194,48 @@ void main() {
     await tocar(tester, 'Guardar ficha');
     expect(find.text('Ya existe un animal con esa identificación en esta granja'), findsOneWidget);
     expect(find.text('Nueva ficha'), findsOneWidget);
+  });
+
+  testWidgets('Ficha permite elegir una ficha existente y actualizarla', (tester) async {
+    final pedidos = <http.BaseRequest>[];
+    simularDatos({
+      'fichas_bovinas': const [lucera, rosa],
+    }, pedidos: pedidos);
+    await abrir(tester, const EditarFichaScreen());
+    String campo(int i) => tester.widget<TextFormField>(find.byType(TextFormField).at(i)).controller!.text;
+    Future<void> elegir(String ficha) async {
+      await tester.tap(find.byType(DropdownButtonFormField<String?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(ficha).last);
+      await tester.pumpAndSettle();
+    }
+
+    await elegir('Lucera · 0842');
+    expect([campo(0), campo(1), campo(2)], ['0842', 'Lucera', 'Holstein']);
+    expect(find.text('15/03/2023'), findsOneWidget);
+
+    // 2. Volver a "Nueva ficha" vacía el formulario.
+    await elegir('Nueva ficha');
+    expect([campo(0), campo(1), campo(2)], ['', '', '']);
+
+    await elegir('Lucera · 0842');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Lucerita');
+    await tocar(tester, 'Guardar ficha');
+    final cambio = pedidos.singleWhere((p) => p.method == 'PATCH');
+    expect(cambio.url.queryParameters['id'], 'eq.f1');
+    expect(cuerpo(pedidos, 'PATCH')['nombre'], 'Lucerita');
+    expect(pedidos.where((p) => p.method == 'POST'), isEmpty);
+  });
+
+  testWidgets('La vista previa abre las fichas sin romperse', (tester) async {
+    await tester.pumpWidget(const VistaPreviaApp());
+    await tester.tap(find.text('Trabajador'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ficha  ›'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ficha'), findsOneWidget);
+    expect(find.text('Nueva ficha'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Editar conserva el id del animal y actualiza la ficha al volver', (tester) async {
