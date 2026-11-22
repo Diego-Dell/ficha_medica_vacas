@@ -6,6 +6,7 @@ import '../../models/animal.dart';
 import '../../models/miembro.dart';
 import '../../widgets/panel_rol.dart';
 import '../../widgets/vetlink.dart';
+import 'datos_granja_screen.dart';
 import 'miembros_screen.dart';
 import 'registrar_otra_granja_screen.dart';
 
@@ -35,10 +36,7 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
           future: _ganado,
           builder: (context, ganado) => FutureBuilder<List<Miembro>>(
             future: _equipo,
-            builder: (context, equipo) => _Resumen(
-              animales: ganado.data?.length,
-              miembros: equipo.data?.length,
-            ),
+            builder: (context, equipo) => _Resumen(animales: ganado.data?.length, miembros: equipo.data?.length),
           ),
         ),
         const SizedBox(height: 16),
@@ -56,6 +54,17 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
               alPresionar: () => _abrir(const MiembrosScreen()),
             ),
           ),
+        // 4. Única entrada para actualizar el RUNSA.
+        if (datos.rol == RolMiembro.dueno)
+          OpcionPanel(
+            titulo: 'Datos de la granja',
+            detalle: 'RUNSA ${datos.actual.runsa}',
+            icono: 'granja',
+            alPresionar: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const DatosGranjaScreen()));
+              if (mounted) setState(() {});
+            },
+          ),
       ],
     );
   }
@@ -70,22 +79,32 @@ class _Resumen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget cifra(int? n, String texto) => Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(n?.toString() ?? '–', style: const TextStyle(fontFamily: fuenteTitulos, fontSize: 32,
-                  fontWeight: FontWeight.w800, color: Colors.white)),
-              Text(texto, style: const TextStyle(fontSize: 12, color: colorVerdeSuave)),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            n?.toString() ?? '–',
+            style: const TextStyle(
+              fontFamily: fuenteTitulos,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
-        );
+          Text(texto, style: const TextStyle(fontSize: 12, color: colorVerdeSuave)),
+        ],
+      ),
+    );
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: colorVerde, borderRadius: BorderRadius.circular(24)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Operaciones de la granja', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorVerdeSuave)),
+          const Text(
+            'Operaciones de la granja',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorVerdeSuave),
+          ),
           const SizedBox(height: 12),
           Row(children: [cifra(animales, 'Animales activos'), cifra(miembros, 'Miembros')]),
         ],
@@ -112,30 +131,38 @@ class _PorEtapa extends StatelessWidget {
             Text('Ganado por etapa', style: Theme.of(context).textTheme.labelMedium),
             const SizedBox(height: 12),
             for (final etapa in Etapa.values.reversed)
-              Builder(builder: (context) {
-                final n = ganado.where((a) => a.etapa == etapa).length;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Row(
-                    children: [
-                      SizedBox(width: 76, child: Text(etapa.etiqueta, style: Theme.of(context).textTheme.bodySmall)),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: n / ganado.length,
-                            minHeight: 8,
-                            color: colorVerde,
-                            backgroundColor: colorVerdeSuave,
+              Builder(
+                builder: (context) {
+                  final n = ganado.where((a) => a.etapa == etapa).length;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      children: [
+                        SizedBox(width: 76, child: Text(etapa.etiqueta, style: Theme.of(context).textTheme.bodySmall)),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: n / ganado.length,
+                              minHeight: 8,
+                              color: colorVerde,
+                              backgroundColor: colorVerdeSuave,
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: 32, child: Text('$n', textAlign: TextAlign.right,
-                          style: const TextStyle(fontWeight: FontWeight.w600, color: colorVerdeOscuro))),
-                    ],
-                  ),
-                );
-              }),
+                        SizedBox(
+                          width: 32,
+                          child: Text(
+                            '$n',
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(fontWeight: FontWeight.w600, color: colorVerdeOscuro),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),

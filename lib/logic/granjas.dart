@@ -298,4 +298,18 @@ class Granjas {
     return _db.storage.from(Documentos.bucket).createSignedUrl(granja.documento.substring(8), 300);
   }
 
+  /// 12. Actualiza el RUNSA de la granja actual; solo el dueño puede hacerlo.
+  Future<String?> actualizarRunsa(String runsa) async {
+    final limpio = runsa.trim().toUpperCase();
+    try {
+      final filas = await _db.from('granjas').update({'runsa': limpio}).eq('id', actual.id).select('id');
+      if (filas.isEmpty) return 'Tu rol no permite este cambio';
+      _actual = actual.conRunsa(limpio);
+      return null;
+    } on PostgrestException {
+      return 'No se pudo guardar el RUNSA';
+    } on Exception {
+      return 'No se pudo conectar. Revisa tu internet';
+    }
+  }
 }

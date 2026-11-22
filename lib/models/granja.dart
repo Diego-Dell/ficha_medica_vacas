@@ -33,4 +33,16 @@ class Granja {
   final bool confirmada;
   final String? motivoRechazo;
   bool get rechazada => !confirmada && motivoRechazo != null;
+
+  /// 3. Copia la granja con otro RUNSA.
+  Granja conRunsa(String nuevo) => Granja(
+        id: id,
+        nombre: nombre,
+        dueno: dueno,
+        superficie: superficie,
+        runsa: nuevo,
+        documento: documento,
+        confirmada: confirmada,
+        motivoRechazo: motivoRechazo,
+      );
 }
