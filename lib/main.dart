@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'logic/sesion.dart';
 import 'screens/acceso_general/login_screen.dart';
 import 'screens/acceso_general/nueva_contrasena_screen.dart';
+import 'widgets/vetlink.dart';
 
 /// Permite abrir pantallas desde fuera de un widget, como el enlace de recuperación.
 final navegador = GlobalKey<NavigatorState>();
@@ -37,10 +38,7 @@ class FichaMedicaApp extends StatelessWidget {
       title: 'VetLink',
       navigatorKey: navegador,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF2F5D46),
-        useMaterial3: true,
-      ),
+      theme: temaVetLink(),
       locale: const Locale('es'),
       supportedLocales: const [Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,

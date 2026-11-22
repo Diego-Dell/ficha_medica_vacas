@@ -30,7 +30,7 @@ class VistaPreviaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorSchemeSeed: colorVerde, useMaterial3: true),
+    theme: temaVetLink(),
     locale: const Locale('es'),
     supportedLocales: const [Locale('es')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
