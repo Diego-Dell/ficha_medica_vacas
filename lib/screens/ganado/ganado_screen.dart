@@ -4,9 +4,9 @@ import '../../logic/fichas.dart';
 import '../../logic/granjas.dart';
 import '../../models/animal.dart';
 import '../../widgets/vetlink.dart';
-import 'editar_ficha_screen.dart';
 import 'ficha_animal_screen.dart';
 
+// 1. "Consulta y supervisión" del prototipo (05 · Vistas compartidas).
 class GanadoScreen extends StatefulWidget {
   const GanadoScreen({super.key});
 
@@ -16,9 +16,9 @@ class GanadoScreen extends StatefulWidget {
 
 class _GanadoScreenState extends State<GanadoScreen> {
   final _busqueda = TextEditingController();
-  late Future<List<Animal>> _animales = _cargar();
+  // 2. Incluye las bajas: su ficha sigue consultable.
+  late Future<List<Animal>> _animales = Fichas.instance.deLaGranja(conBajas: true);
   Etapa? _etapa;
-  bool _conBajas = false;
 
   @override
   void dispose() {
@@ -26,22 +26,18 @@ class _GanadoScreenState extends State<GanadoScreen> {
     super.dispose();
   }
 
-  Future<List<Animal>> _cargar() => Fichas.instance.deLaGranja(conBajas: _conBajas);
-
-  /// 1. Vuelve a pedir las fichas a Supabase.
   void _recargar() {
     setState(() {
-      _animales = _cargar();
+      _animales = Fichas.instance.deLaGranja(conBajas: true);
     });
   }
 
-  /// 2. Abre una pantalla y actualiza la lista al volver.
-  Future<void> _abrir(Widget pantalla) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
+  Future<void> _abrir(Animal animal) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FichaAnimalScreen(animal: animal)));
     if (mounted) _recargar();
   }
 
-  /// 3. Filtra por arete o nombre y por etapa sin volver a consultar la base.
+  // 3. Filtra por identificación o nombre y por etapa.
   List<Animal> _filtrar(List<Animal> animales) {
     final texto = _busqueda.text.trim().toLowerCase();
     return [
@@ -56,12 +52,12 @@ class _GanadoScreenState extends State<GanadoScreen> {
   Widget build(BuildContext context) {
     final granja = Granjas.instance.actual.nombre;
     final tema = Theme.of(context).textTheme;
-    void volver() => Navigator.pop(context);
+    final etiqueta = tema.labelMedium?.copyWith(color: colorVerdeOscuro);
 
     return PantallaVetLink(
-      encabezado: EncabezadoVetLink(granja: granja, alVolver: volver),
-      titulo: 'Ganado',
-      subtitulo: 'Buscá animales de $granja y revisá su ficha.',
+      encabezado: EncabezadoVetLink(granja: granja, alVolver: () => Navigator.pop(context)),
+      titulo: 'Consulta y supervisión',
+      subtitulo: 'Buscá animales y revisá su seguimiento.',
       children: [
         CampoEtiquetado(
           etiqueta: 'Identificación o nombre',
@@ -83,15 +79,10 @@ class _GanadoScreenState extends State<GanadoScreen> {
             onChanged: (etapa) => setState(() => _etapa = etapa),
           ),
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Incluir dados de baja'),
-          value: _conBajas,
-          onChanged: (valor) {
-            _conBajas = valor;
-            _recargar();
-          },
-        ),
+        Text('Resultados:', style: tema.labelLarge?.copyWith(color: colorVerde, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text('Animales', style: etiqueta),
+        const SizedBox(height: 8),
         FutureBuilder<List<Animal>>(
           future: _animales,
           builder: (context, estado) {
@@ -110,27 +101,15 @@ class _GanadoScreenState extends State<GanadoScreen> {
               );
             }
             final visibles = _filtrar(animales);
+            if (visibles.isEmpty) {
+              return Text('Sin resultados.', style: tema.bodySmall?.copyWith(color: colorTextoSuave));
+            }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '${visibles.length} ${visibles.length == 1 ? 'animal' : 'animales'}',
-                    style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                if (animales.isEmpty)
-                  Text('Todavía no hay fichas en esta granja.', style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
-                for (final a in visibles) _TarjetaAnimal(animal: a, alPresionar: () => _abrir(FichaAnimalScreen(animal: a))),
-              ],
+              children: [for (final a in visibles) _TarjetaAnimal(animal: a, alPresionar: () => _abrir(a))],
             );
           },
         ),
-        const SizedBox(height: 4),
-        if (Fichas.instance.puedeEditar)
-          BotonPrincipal(texto: 'Nueva ficha', alPresionar: () => _abrir(const EditarFichaScreen())),
-        BotonSecundario(texto: 'Volver', alPresionar: volver),
       ],
     );
   }
@@ -145,11 +124,11 @@ class _TarjetaAnimal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context).textTheme;
-    final datos = [animal.etapa.etiqueta, if (animal.raza != null) animal.raza!, animal.deBaja ? 'Dado de baja' : 'Activo'];
+    final datos = [animal.etapa.etiqueta, if (animal.raza != null) animal.raza!, if (animal.deBaja) 'De baja'];
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: animal.deBaja ? colorFondo : Colors.white,
+        color: Colors.white,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: colorBorde),
           borderRadius: BorderRadius.circular(10),
@@ -167,10 +146,7 @@ class _TarjetaAnimal extends StatelessWidget {
                   style: tema.titleSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  datos.join(' · '),
-                  style: tema.bodySmall?.copyWith(color: animal.deBaja ? colorRojo : colorTextoSuave),
-                ),
+                Text(datos.join(' · '), style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
               ],
             ),
           ),
