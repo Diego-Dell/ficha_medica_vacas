@@ -1,4 +1,5 @@
 {
   "SUPABASE_URL": "https://TU_PROYECTO.supabase.co",
-  "SUPABASE_PUBLISHABLE_KEY": "TU_CLAVE_PUBLICA"
+  "SUPABASE_PUBLISHABLE_KEY": "TU_CLAVE_PUBLICA",
+  "API_URL": "https://vetlink-api.onrender.com"
 }
