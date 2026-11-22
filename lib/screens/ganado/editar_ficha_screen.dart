@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../logic/fichas.dart';
 import '../../logic/granjas.dart';
 import '../../models/animal.dart';
+import '../../models/miembro.dart';
 import '../../widgets/vetlink.dart';
 import 'registro_guardado.dart';
 
@@ -26,6 +27,8 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
   DateTime? _nacimiento;
   bool _estimado = false;
   bool _enviando = false;
+  bool get _soloEtapa => _animal != null && Granjas.instance.rol == RolMiembro.veterinario;
+  bool get _puedeCambiarEtapa => _animal == null || Granjas.instance.rol != RolMiembro.trabajador;
 
   @override
   void initState() {
@@ -80,7 +83,9 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
       nacimiento: _nacimiento,
       nacimientoEstimado: _nacimiento != null && _estimado,
     );
-    final error = _animal != null ? await Fichas.instance.actualizar(animal) : await Fichas.instance.crear(animal);
+    final error = _soloEtapa
+        ? await Fichas.instance.actualizarEtapa(_animal!, _etapa!)
+        : _animal != null ? await Fichas.instance.actualizar(animal) : await Fichas.instance.crear(animal);
     if (!mounted) return;
     setState(() => _enviando = false);
 
@@ -97,7 +102,7 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
   Widget build(BuildContext context) {
     return PantallaVetLink(
       encabezado: EncabezadoVetLink(granja: Granjas.instance.actual.nombre, alVolver: () => Navigator.pop(context)),
-      titulo: _animal == null ? 'Nueva ficha' : 'Editar ficha',
+      titulo: _animal == null ? 'Nueva ficha' : _soloEtapa ? 'Editar etapa' : 'Editar ficha',
       subtitulo: 'Los campos con * son obligatorios.',
       children: [
         Form(
@@ -105,6 +110,8 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (_soloEtapa) Text(_animal!.titulo, style: Theme.of(context).textTheme.titleMedium),
+              if (!_soloEtapa) ...[
               CampoEtiquetado(
                 etiqueta: 'Identificación *',
                 child: TextFormField(
@@ -161,8 +168,9 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
                   ],
                 ),
               ),
+              ],
               CampoEtiquetado(
-                etiqueta: 'Etapa *',
+                etiqueta: _puedeCambiarEtapa ? 'Etapa *' : 'Etapa (solo consulta)',
                 // 6. Etapa como selector de tres opciones.
                 child: FormField<Etapa>(
                   key: ValueKey(_etapa),
@@ -180,7 +188,7 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
                                 child: _OpcionEtapa(
                                   texto: e.etiqueta,
                                   activa: _etapa == e,
-                                  alElegir: () => setState(() => _etapa = e),
+                                  alElegir: _puedeCambiarEtapa ? () => setState(() => _etapa = e) : null,
                                 ),
                               ),
                             ),
@@ -199,7 +207,7 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
           ),
         ),
         BotonPrincipal(
-          texto: _enviando ? 'Guardando...' : 'Guardar ficha',
+          texto: _enviando ? 'Guardando...' : _soloEtapa ? 'Guardar etapa' : 'Guardar ficha',
           alPresionar: _enviando ? null : _guardar,
         ),
       ],
@@ -213,7 +221,7 @@ class _OpcionEtapa extends StatelessWidget {
 
   final String texto;
   final bool activa;
-  final VoidCallback alElegir;
+  final VoidCallback? alElegir;
 
   @override
   Widget build(BuildContext context) => Material(

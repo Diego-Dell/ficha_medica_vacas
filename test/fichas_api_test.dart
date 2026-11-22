@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 
 import 'package:ficha_medica_vacas/logic/fichas.dart';
 import 'package:ficha_medica_vacas/models/animal.dart';
+import 'package:ficha_medica_vacas/models/miembro.dart';
 
 import 'apoyo.dart';
 
@@ -40,6 +41,21 @@ void main() {
     }));
   });
   tearDown(() => Fichas.instance.usarApi('', http.Client()));
+
+  test('Veterinario envía solo etapa al endpoint y no puede enviar ficha completa', () async {
+    entrarALosPinos(rol: RolMiembro.veterinario);
+    respuesta = http.Response('', 204);
+    final animal = Animal.desdeApi(luceraApi);
+    expect(await Fichas.instance.actualizarEtapa(animal, Etapa.vaquilla), isNull);
+    expect(pedidos.single.method, 'PATCH');
+    expect(pedidos.single.url.path, '/api/fichasbovinas/f1/etapa');
+    expect(jsonDecode(pedidos.single.body), {'etapa': 'Vaquilla'});
+    expect(await Fichas.instance.actualizar(animal), isNotNull);
+    expect(pedidos, hasLength(1));
+    entrarALosPinos(rol: RolMiembro.trabajador);
+    expect(await Fichas.instance.actualizarEtapa(animal, Etapa.vaquilla), isNotNull);
+    expect(pedidos, hasLength(1));
+  });
 
   test('Lista las fichas de la granja actual desde la API y oculta las bajas', () async {
     respuesta = http.Response(jsonEncode([luceraApi, {...luceraApi, 'id': 'f2', 'fechaBaja': '2026-11-01', 'motivoBaja': 'Venta'}]), 200);
