@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../logic/granjas.dart';
 import '../../logic/sesion.dart';
 import '../../models/miembro.dart';
-import '../../widgets/campos_granja.dart';
 import '../../widgets/vetlink.dart';
 
 class ExpulsarMiembroScreen extends StatefulWidget {
@@ -38,20 +37,12 @@ class _ExpulsarMiembroScreenState extends State<ExpulsarMiembroScreen> {
     final datos = Granjas.instance;
     final granja = datos.actual.nombre;
     final miembros = widget.miembros
-        .where(
-          (m) =>
-              m.rol != RolMiembro.dueno &&
-              m.cuentaId.isNotEmpty &&
-              m.cuentaId != Sesion.instance.id,
-        )
+        .where((m) => m.rol != RolMiembro.dueno && m.cuentaId.isNotEmpty && m.cuentaId != Sesion.instance.id)
         .toList();
     void volver() => Navigator.pop(context, _expulsado);
 
     return PantallaVetLink(
-      encabezado: EncabezadoVetLink(
-        granja: granja,
-        alVolver: _enviando ? null : volver,
-      ),
+      encabezado: EncabezadoVetLink(granja: granja, alVolver: _enviando ? null : volver),
       titulo: _expulsado ? 'Miembro expulsado' : 'Expulsar miembro',
       subtitulo: _expulsado
           ? '${_seleccionado!.nombre} ya no tiene acceso a $granja.'
@@ -66,38 +57,30 @@ class _ExpulsarMiembroScreenState extends State<ExpulsarMiembroScreen> {
               child: DropdownButtonFormField<Miembro>(
                 initialValue: _seleccionado,
                 isExpanded: true,
-                decoration: decoracionCampo(pista: 'Seleccionar miembro'),
+                decoration: decoracionCampo(pista: 'Seleccionar miembro', icono: 'perfil'),
                 items: [
                   for (final m in miembros)
                     DropdownMenuItem(
                       value: m,
-                      child: Text(
-                        '${m.nombre} · ${m.rol.etiqueta}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text('${m.nombre} · ${m.rol.etiqueta}', overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: _enviando
-                    ? null
-                    : (m) => setState(() => _seleccionado = m),
+                onChanged: _enviando ? null : (m) => setState(() => _seleccionado = m),
               ),
             ),
-            const AvisoRol(
+            const AvisoVetLink(
               titulo: '¿Qué pasa al expulsarlo?',
               texto: 'Perderá el acceso a esta granja. Su cuenta y los registros que realizó se conservarán.',
+              advertencia: true,
             ),
             BotonPrincipal(
+              color: colorRojo,
               texto: _enviando ? 'Expulsando...' : 'Confirmar expulsión',
-              alPresionar: _enviando || _seleccionado == null
-                  ? null
-                  : _expulsar,
+              alPresionar: _enviando || _seleccionado == null ? null : _expulsar,
             ),
           ],
         ],
-        BotonSecundario(
-          texto: _expulsado ? 'Volver a miembros' : 'Cancelar',
-          alPresionar: _enviando ? null : volver,
-        ),
+        BotonSecundario(texto: _expulsado ? 'Volver a miembros' : 'Cancelar', alPresionar: _enviando ? null : volver),
       ],
     );
   }

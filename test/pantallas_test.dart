@@ -211,7 +211,9 @@ void main() {
     expect(guardado, {'granja_id': 'g1', 'correo': 'nueva@ejemplo.com', 'rol': 'veterinario'});
     final correo = pedidos.singleWhere((p) => p.url.path.endsWith('dynamic-action')) as http.Request;
     expect(jsonDecode(correo.body), {'invitacion_id': 'nueva'});
-    expect(find.text('Invitación enviada a nueva@ejemplo.com'), findsOneWidget);
+    expect(find.text('Invitación enviada'), findsOneWidget);
+    expect(find.text('nueva@ejemplo.com recibirá un correo para unirse como Veterinario.'), findsOneWidget);
+    await tocar(tester, 'Listo');
     expect(find.text('Equipo vinculado a Los Pinos.'), findsOneWidget);
   });
 

@@ -57,8 +57,8 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
       pendientes.isEmpty
           ? 'No hay invitaciones pendientes'
           : enviados == pendientes.length
-              ? 'Se reenviaron $enviados de $enviados invitaciones'
-              : 'Solo se reenviaron $enviados de ${pendientes.length} invitaciones: $motivo',
+          ? 'Se reenviaron $enviados de $enviados invitaciones'
+          : 'Solo se reenviaron $enviados de ${pendientes.length} invitaciones: $motivo',
     );
   }
 
@@ -93,46 +93,19 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 4. Tarjeta por persona: iniciales, nombre con rol y correo.
                 for (final m in equipo.miembros)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: colorBorde),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${m.nombre} · ${m.rol.etiqueta}',
-                          style: tema.titleSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 2),
-                        Text('${m.correo} · Activo', style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
-                      ],
-                    ),
+                  _Persona(
+                    iniciales: _iniciales(m.nombre),
+                    titulo: '${m.nombre} · ${m.rol.etiqueta}',
+                    detalle: '${m.correo} · Activo',
                   ),
                 for (final i in equipo.invitaciones)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: colorVerdeSuave, borderRadius: BorderRadius.circular(10)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Invitación pendiente',
-                          style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${i.correo} · ${i.rol.etiqueta}\nEnviada el ${fechaCorta(i.enviada)}',
-                          style: tema.bodySmall?.copyWith(color: colorTextoSuave),
-                        ),
-                      ],
-                    ),
+                  _Persona(
+                    iniciales: _iniciales(i.correo),
+                    titulo: 'Invitación pendiente',
+                    detalle: '${i.correo} · ${i.rol.etiqueta}\nEnviada el ${fechaCorta(i.enviada)}',
+                    pendiente: true,
                   ),
               ],
             );
@@ -159,18 +132,12 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
                 if (!context.mounted) return;
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ExpulsarMiembroScreen(miembros: equipo.miembros),
-                  ),
+                  MaterialPageRoute(builder: (_) => ExpulsarMiembroScreen(miembros: equipo.miembros)),
                 );
                 if (mounted) _recargar();
               } on Exception {
                 if (context.mounted) {
-                  avisar(
-                    context,
-                    'No se pudo cargar el equipo. Intenta de nuevo',
-                  );
+                  avisar(context, 'No se pudo cargar el equipo. Intenta de nuevo');
                 }
               }
             },
@@ -183,4 +150,49 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
       ],
     );
   }
+}
+
+String _iniciales(String texto) =>
+    texto.split(RegExp(r'[\s@.]')).where((p) => p.isNotEmpty).take(2).map((p) => p[0].toUpperCase()).join();
+
+// 5. Fila del equipo con avatar de iniciales.
+class _Persona extends StatelessWidget {
+  const _Persona({required this.iniciales, required this.titulo, required this.detalle, this.pendiente = false});
+
+  final String iniciales, titulo, detalle;
+  final bool pendiente;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Tarjeta(
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: pendiente ? colorAmbarFondo : colorVerdeSuave,
+            child: Text(
+              iniciales,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: pendiente ? colorAmbarTexto : colorVerde,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 15)),
+                Text(detalle, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+          if (pendiente) const ChipEstado('Pendiente', tipo: TipoChip.advertencia),
+        ],
+      ),
+    ),
+  );
 }
