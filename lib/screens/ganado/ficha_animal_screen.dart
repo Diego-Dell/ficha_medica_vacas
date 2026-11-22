@@ -5,6 +5,7 @@ import '../../logic/granjas.dart';
 import '../../models/animal.dart';
 import '../../models/miembro.dart';
 import '../../widgets/vetlink.dart';
+import '../../widgets/historial_cuidados.dart';
 import '../inicio_por_rol.dart';
 import 'dar_de_baja_screen.dart';
 import 'editar_ficha_screen.dart';
@@ -22,8 +23,8 @@ class FichaAnimalScreen extends StatefulWidget {
 class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
   late Animal _animal = widget.animal;
 
-  // 2. Aquí Clínica, Tratamientos y Cuidados agregan su historial.
-  List<Widget> _registros(Animal animal) => const [];
+  // Las aplicaciones del módulo de cuidados se consultan sin alterar la ficha.
+  List<Widget> _registros(Animal animal) => [HistorialCuidados(animal: animal)];
 
   // 3. Abre editar o dar de baja y vuelve a leer la ficha.
   Future<void> _abrir(Widget pantalla) async {
