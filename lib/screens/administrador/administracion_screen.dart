@@ -32,16 +32,16 @@ class _AdministracionScreenState extends State<AdministracionScreen> {
 
   @override
   Widget build(BuildContext context) => PanelRol(
-    titulo: 'Administración',
-    subtitulo: 'Gestión general del sistema.',
     rol: 'Administrador',
     granja: _seleccionada?.nombre ?? 'Todas las granjas',
+    mostrarGanado: false,
     menuLateral: MenuGranjasAdministrador(
       seleccionada: _seleccionada,
       alSeleccionar: (granja) => setState(() { _seleccionada = granja; }),
     ),
     alCerrarSesion: widget.alCerrarSesion,
     children: [
+      // 1. Solicitudes por confirmar, directo en el inicio.
       FutureBuilder<List<Granja>>(
         future: _pendientes,
         builder: (context, estado) {
@@ -52,36 +52,46 @@ class _AdministracionScreenState extends State<AdministracionScreen> {
             );
           }
           final pendientes = estado.data;
-          return Container(
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(color: colorVerdeSuave, borderRadius: BorderRadius.circular(10)),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                pendientes == null ? 'Consultando solicitudes...' : '${pendientes.length} ${pendientes.length == 1 ? 'granja' : 'granjas'} por confirmar',
-                style: const TextStyle(color: colorVerdeOscuro, fontSize: 13, fontWeight: FontWeight.w600),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(color: colorVerde, borderRadius: BorderRadius.circular(24)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Gestión general del sistema',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorVerdeSuave)),
+                  const SizedBox(height: 8),
+                  Text(pendientes == null ? '–' : '${pendientes.length}',
+                      style: const TextStyle(fontFamily: fuenteTitulos, fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white)),
+                  Text(
+                    pendientes == null ? 'Consultando solicitudes...'
+                        : '${pendientes.length == 1 ? 'granja' : 'granjas'} por confirmar',
+                    style: const TextStyle(fontSize: 12, color: colorVerdeSuave),
+                  ),
+                ]),
               ),
-              const SizedBox(height: 4),
-              Text(
-                pendientes == null ? 'Cargando datos.' : pendientes.isEmpty
-                    ? 'No hay solicitudes pendientes.'
-                    : 'Solicitudes recibidas: ${pendientes.map((g) => g.nombre).join(', ')}.',
-                style: const TextStyle(color: colorTextoSuave, fontSize: 12),
-              ),
-            ]),
+              if (pendientes != null && pendientes.isEmpty)
+                const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No hay solicitudes pendientes.')),
+              if (pendientes != null && pendientes.isNotEmpty) ...[
+                const TituloGrupo('Por confirmar'),
+                for (final g in pendientes)
+                  OpcionPanel(titulo: g.nombre, detalle: g.dueno.isEmpty ? null : g.dueno, icono: 'granja', alPresionar: _revisar),
+              ],
+            ],
           );
         },
       ),
-      const OpcionPanel(titulo: 'Cuentas y accesos', detalle: 'Corregir datos, recuperar o desactivar accesos.', alPresionar: null),
-      OpcionPanel(titulo: 'Confirmar granjas', detalle: 'Revisar datos y documentación.', alPresionar: _revisar),
+      const OpcionPanel(titulo: 'Cuentas y accesos', icono: 'miembros', alPresionar: null),
       if (_seleccionada != null) ...[
         TextButton.icon(onPressed: () => setState(() { _seleccionada = null; }),
-          icon: const Icon(Icons.arrow_back, size: 18), label: const Text('Volver a gestión general')),
-        Padding(padding: const EdgeInsets.only(bottom: 12),
-          child: Text('Operaciones en ${_seleccionada!.nombre}',
-            style: const TextStyle(color: colorTextoSuave, fontSize: 13, fontWeight: FontWeight.w600))),
-        const OpcionPanel(titulo: 'Ganado e historial', detalle: 'Consulta de fichas y antecedentes.', alPresionar: null),
-        const OpcionPanel(titulo: 'Operaciones de la granja', detalle: 'Gestión de fichas del ganado.', alPresionar: null),
+          icon: const Icono('volver', color: colorVerde, tam: 18), label: const Text('Volver a gestión general')),
+        TituloGrupo('Operaciones en ${_seleccionada!.nombre}'),
+        const Accesos(children: [
+          Acceso(titulo: 'Ganado e historial', icono: 'ganado', alPresionar: null),
+          Acceso(titulo: 'Operaciones', icono: 'granja', alPresionar: null),
+        ]),
       ],
     ],
   );

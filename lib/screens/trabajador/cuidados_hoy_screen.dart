@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/panel_rol.dart';
-import '../ganado/editar_ficha_screen.dart';
-import '../ganado/ganado_screen.dart';
 
+// 1. Inicio del trabajador; fichas y consulta están en la pestaña Ganado.
 class CuidadosHoyScreen extends StatelessWidget {
   const CuidadosHoyScreen({
     super.key,
@@ -14,27 +13,17 @@ class CuidadosHoyScreen extends StatelessWidget {
   final VoidCallback? alCerrarSesion;
 
   @override
-  Widget build(BuildContext context) {
-    void abrir(Widget pantalla) => Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
-    return PanelRol(
-      rol: 'Trabajador',
-      granja: granja,
-      alCerrarSesion: alCerrarSesion,
-      mostrarReportes: false,
-      children: [
-        OpcionPanel(
-          titulo: 'Ficha',
-          detalle: 'Registrar o actualizar los datos del animal.',
-          alPresionar: () => abrir(const EditarFichaScreen()),
-        ),
-        const OpcionPanel(titulo: 'Observación', detalle: 'Describir lo observado y el cuidado realizado.', alPresionar: null),
-        const OpcionPanel(titulo: 'Aplicación', detalle: 'Registrar la aplicación de una indicación.', alPresionar: null),
-        OpcionPanel(
-          titulo: 'Consulta',
-          detalle: 'Buscar animales y consultar su seguimiento.',
-          alPresionar: () => abrir(const GanadoScreen()),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => PanelRol(
+        rol: 'Trabajador',
+        granja: granja,
+        alCerrarSesion: alCerrarSesion,
+        children: const [
+          TituloGrupo('Registrar'),
+          // 2. Se activan con el módulo de Cuidados y aplicaciones.
+          Accesos(children: [
+            Acceso(titulo: 'Observación', icono: 'cuidado', alPresionar: null),
+            Acceso(titulo: 'Aplicación', icono: 'medicamento', alPresionar: null),
+          ]),
+        ],
+      );
 }

@@ -6,9 +6,11 @@ import '../../models/animal.dart';
 import '../../widgets/vetlink.dart';
 import 'registro_guardado.dart';
 
-// 1. "Ficha" del prototipo: crea una ficha o actualiza una existente.
+// 1. Nueva ficha, o editar la ficha de [animal] (se abre desde su ficha).
 class EditarFichaScreen extends StatefulWidget {
-  const EditarFichaScreen({super.key});
+  const EditarFichaScreen({super.key, this.animal});
+
+  final Animal? animal;
 
   @override
   State<EditarFichaScreen> createState() => _EditarFichaScreenState();
@@ -19,12 +21,17 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
   final _arete = TextEditingController();
   final _nombre = TextEditingController();
   final _raza = TextEditingController();
-  final _fichas = Fichas.instance.activos();
   Animal? _animal;
   Etapa? _etapa;
   DateTime? _nacimiento;
   bool _estimado = false;
   bool _enviando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animal != null) _cargar(widget.animal);
+  }
 
   @override
   void dispose() {
@@ -34,17 +41,15 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
     super.dispose();
   }
 
-  // 2. Llena el formulario con la ficha elegida o lo vacía.
+  // 2. Llena el formulario con la ficha a editar.
   void _cargar(Animal? animal) {
-    setState(() {
-      _animal = animal;
-      _arete.text = animal?.arete ?? '';
-      _nombre.text = animal?.nombre ?? '';
-      _raza.text = animal?.raza ?? '';
-      _etapa = animal?.etapa;
-      _nacimiento = animal?.nacimiento;
-      _estimado = animal?.nacimientoEstimado ?? false;
-    });
+    _animal = animal;
+    _arete.text = animal?.arete ?? '';
+    _nombre.text = animal?.nombre ?? '';
+    _raza.text = animal?.raza ?? '';
+    _etapa = animal?.etapa;
+    _nacimiento = animal?.nacimiento;
+    _estimado = animal?.nacimientoEstimado ?? false;
   }
 
   Future<void> _elegirNacimiento() async {
@@ -92,26 +97,9 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
   Widget build(BuildContext context) {
     return PantallaVetLink(
       encabezado: EncabezadoVetLink(granja: Granjas.instance.actual.nombre, alVolver: () => Navigator.pop(context)),
-      titulo: 'Ficha',
-      subtitulo: 'Creá una ficha o seleccioná una para actualizarla.',
+      titulo: _animal == null ? 'Nueva ficha' : 'Editar ficha',
+      subtitulo: 'Los campos con * son obligatorios.',
       children: [
-        FutureBuilder<List<Animal>>(
-          future: _fichas,
-          builder: (context, estado) => CampoEtiquetado(
-            etiqueta: 'Ficha',
-            child: DropdownButtonFormField<String?>(
-              key: ValueKey(estado.data?.length),
-              initialValue: _animal?.id,
-              isExpanded: true,
-              decoration: decoracionCampo(),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('Nueva ficha')),
-                for (final a in estado.data ?? const <Animal>[]) DropdownMenuItem(value: a.id, child: Text(a.titulo)),
-              ],
-              onChanged: (id) => _cargar(id == null ? null : estado.data!.firstWhere((a) => a.id == id)),
-            ),
-          ),
-        ),
         Form(
           key: _form,
           child: Column(
@@ -148,10 +136,10 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
                   children: [
                     Expanded(
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(radioCampo),
                         onTap: _elegirNacimiento,
                         child: InputDecorator(
-                          decoration: decoracionCampo(),
+                          decoration: decoracionCampo(icono: 'calendario'),
                           child: Text(_nacimiento == null ? 'Sin registrar' : fechaCorta(_nacimiento!)),
                         ),
                       ),
@@ -175,14 +163,36 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
               ),
               CampoEtiquetado(
                 etiqueta: 'Etapa *',
-                child: DropdownButtonFormField<Etapa>(
+                // 6. Etapa como selector de tres opciones.
+                child: FormField<Etapa>(
                   key: ValueKey(_etapa),
                   initialValue: _etapa,
-                  isExpanded: true,
-                  decoration: decoracionCampo(pista: 'Ternera / Vaquilla / Vaca'),
-                  items: [for (final e in Etapa.values) DropdownMenuItem(value: e, child: Text(e.etiqueta))],
-                  onChanged: (etapa) => setState(() => _etapa = etapa),
-                  validator: (etapa) => etapa == null ? 'Campo obligatorio' : null,
+                  validator: (_) => _etapa == null ? 'Campo obligatorio' : null,
+                  builder: (campo) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          for (final e in Etapa.values)
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(right: e == Etapa.values.last ? 0 : 8),
+                                child: _OpcionEtapa(
+                                  texto: e.etiqueta,
+                                  activa: _etapa == e,
+                                  alElegir: () => setState(() => _etapa = e),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (campo.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, left: 12),
+                          child: Text(campo.errorText!, style: const TextStyle(color: colorRojo, fontSize: 12)),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -195,4 +205,34 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
       ],
     );
   }
+}
+
+// 7. Botón de una etapa: verde suave cuando está elegida.
+class _OpcionEtapa extends StatelessWidget {
+  const _OpcionEtapa({required this.texto, required this.activa, required this.alElegir});
+
+  final String texto;
+  final bool activa;
+  final VoidCallback alElegir;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: activa ? colorVerdeSuave : colorSuperficie,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radioCampo),
+          side: BorderSide(color: activa ? colorVerde : colorBorde, width: activa ? 1.5 : 1),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radioCampo),
+          onTap: alElegir,
+          child: SizedBox(
+            height: 48,
+            child: Center(
+              child: Text(texto, style: TextStyle(
+                  fontWeight: activa ? FontWeight.w600 : FontWeight.w400,
+                  color: activa ? colorVerde : colorTextoSuave)),
+            ),
+          ),
+        ),
+      );
 }

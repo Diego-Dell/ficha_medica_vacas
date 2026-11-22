@@ -4,7 +4,7 @@ import '../logic/granjas.dart';
 import '../screens/inicio_por_rol.dart';
 import 'vetlink.dart';
 
-/// Menú compartido: Drawer aporta la animación, el fondo y el cierre al deslizar.
+// 1. Hoja inferior "Cambiar de granja": lista las granjas de la cuenta.
 class MenuGranjas extends StatefulWidget {
   const MenuGranjas({super.key, required this.alRegistrar});
   final VoidCallback alRegistrar;
@@ -16,66 +16,79 @@ class MenuGranjas extends StatefulWidget {
 class _MenuGranjasState extends State<MenuGranjas> {
   late Future<List<Vinculo>> _vinculos = Granjas.instance.misVinculos();
 
+  // 2. Estado que se muestra debajo del nombre.
+  String _estado(Vinculo v) {
+    if (!v.granja.confirmada) return v.granja.rechazada ? 'Solicitud rechazada' : 'En revisión';
+    return v.rol.etiqueta;
+  }
+
   @override
-  Widget build(BuildContext context) => Drawer(
-    width: MediaQuery.sizeOf(context).width * .72,
-    backgroundColor: const Color(0xFFF7F8F0),
-    shape: const RoundedRectangleBorder(),
-    child: SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar ×', style: TextStyle(color: colorVerde, fontSize: 12))),
+  Widget build(BuildContext context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Cambiar de granja', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              FutureBuilder<List<Vinculo>>(
+                future: _vinculos,
+                builder: (context, estado) {
+                  if (estado.hasError) {
+                    return TextButton(
+                      onPressed: () => setState(() => _vinculos = Granjas.instance.misVinculos()),
+                      child: const Text('No se pudieron cargar tus granjas. Reintentar'),
+                    );
+                  }
+                  if (!estado.hasData) return const Center(child: CircularProgressIndicator());
+                  if (estado.data!.isEmpty) {
+                    return const Padding(padding: EdgeInsets.only(bottom: 16), child: Text('No tenés granjas vinculadas.'));
+                  }
+                  return Column(
+                    children: [
+                      for (final vinculo in estado.data!) _fila(context, vinculo),
+                    ],
+                  );
+                },
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.alRegistrar();
+                },
+                icon: const Icono('agregar', color: colorVerde, tam: 20),
+                label: const Text('Registrar otra granja'),
+                style: TextButton.styleFrom(foregroundColor: colorVerde, minimumSize: const Size.fromHeight(48)),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          const Text('Mis granjas', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: colorVerdeOscuro)),
-          const SizedBox(height: 16),
-          FutureBuilder<List<Vinculo>>(
-            future: _vinculos,
-            builder: (context, estado) {
-              if (estado.hasError) {
-                return TextButton(onPressed: () {
-                  setState(() { _vinculos = Granjas.instance.misVinculos(); });
-                }, child: const Text('No se pudieron cargar tus granjas. Reintentar'));
-              }
-              if (!estado.hasData) return const Center(child: CircularProgressIndicator());
-              if (estado.data!.isEmpty) {
-                return const Padding(
-                padding: EdgeInsets.only(bottom: 16), child: Text('No tenés granjas vinculadas.'));
-              }
-              return Column(children: [for (final vinculo in estado.data!)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Material(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      title: Text(vinculo.granja.nombre, style: const TextStyle(color: colorVerde, fontWeight: FontWeight.w600, fontSize: 15)),
-                      subtitle: Text(!vinculo.granja.confirmada
-                        ? (vinculo.granja.rechazada ? 'Solicitud rechazada' : 'En revisión')
-                        : Granjas.instance.esActual(vinculo.granja) ? 'Granja actual' : 'Granja vinculada',
-                        style: const TextStyle(color: colorTextoSuave, fontSize: 12)),
-                      trailing: Granjas.instance.esActual(vinculo.granja) ? null : const Icon(Icons.chevron_right, color: colorVerde, size: 18),
-                      onTap: () {
-                        Navigator.pop(context);
-                        InicioPorRol.entrar(context, vinculo);
-                      },
-                    ),
-                  ),
-                ),
-              ]);
-            },
-          ),
-          BotonPrincipal(texto: 'Registrar otra granja', alPresionar: () {
+        ),
+      );
+
+  Widget _fila(BuildContext context, Vinculo vinculo) {
+    final actual = Granjas.instance.esActual(vinculo.granja);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: actual ? colorVerdeSuave : colorSuperficie,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radioTarjeta),
+          side: actual ? BorderSide.none : const BorderSide(color: colorBorde),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          leading: BurbujaIcono('granja', tam: 40, fondo: actual ? colorSuperficie : colorVerdeSuave),
+          title: Text(vinculo.granja.nombre, style: Theme.of(context).textTheme.titleMedium),
+          subtitle: Text(_estado(vinculo), style: Theme.of(context).textTheme.bodySmall),
+          trailing: actual ? const Icono('check', color: colorVerde, tam: 20) : null,
+          onTap: () {
             Navigator.pop(context);
-            widget.alRegistrar();
-          }),
-        ],
+            if (!actual) InicioPorRol.entrar(context, vinculo);
+          },
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
