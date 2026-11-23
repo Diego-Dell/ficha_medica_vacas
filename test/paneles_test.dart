@@ -43,12 +43,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(acceso), findsOneWidget);
       expect(find.text('Los Pinos · ${rol.etiqueta}'), findsOneWidget);
-      // Clínica y Reproducción están disponibles para el veterinario;
+      // Los cuatro registros están disponibles para el veterinario;
       // Observación y Aplicación están disponibles para el trabajador.
       for (final tarjeta in tester.widgetList<Acceso>(find.byType(Acceso))) {
         final disponible =
             (rol == RolMiembro.veterinario &&
-                ['Clínica', 'Reproducción'].contains(tarjeta.titulo)) ||
+                ['Clínica', 'Reproducción', 'Tratamiento', 'Prevención'].contains(tarjeta.titulo)) ||
             rol == RolMiembro.trabajador;
         expect(tarjeta.alPresionar, disponible ? isNotNull : isNull, reason: tarjeta.titulo);
       }

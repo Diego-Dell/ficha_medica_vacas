@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,6 +14,11 @@ class Indicacion {
     required this.tipo,
     required this.dosis,
     required this.unidad,
+    this.via,
+    this.frecuencia,
+    this.duracion,
+    this.inicio,
+    this.retiro,
   });
 
   final String id;
@@ -21,6 +27,8 @@ class Indicacion {
   final String tipo;
   final double? dosis;
   final String? unidad;
+  final String? via, frecuencia, duracion, retiro;
+  final DateTime? inicio;
 
   bool get esTratamiento => tipo == 'Tratamiento';
 }
@@ -78,9 +86,15 @@ class Cuidados {
           (() => Supabase.instance.client.auth.currentSession?.accessToken);
 
   static final instance = Cuidados();
-  final http.Client _cliente;
-  final String _api;
-  final String? Function() _token;
+  http.Client _cliente;
+  String _api;
+  String? Function() _token;
+  @visibleForTesting
+  void usarApi(String api, http.Client cliente, {required String? Function() token}) {
+    _api = api; _cliente = cliente; _token = token;
+  }
+  SupabaseClient? _supabase;
+  void conectar(SupabaseClient cliente) => _supabase = cliente;
 
   Future<dynamic> _pedir(
     String metodo,
@@ -95,6 +109,18 @@ class Cuidados {
     final token = _token();
     if (token == null || token.isEmpty) {
       throw const ErrorCuidados('Iniciá sesión para registrar cuidados.');
+    }
+    // Estas tablas incluyen el retiro y el cierre que aún no expone el DTO de la API.
+    if (metodo == 'GET' && _supabase != null && (ruta == 'tratamientos' || ruta == 'prevenciones')) {
+      try {
+        final filas = await _supabase!.from(ruta).select();
+        return [for (final f in filas) {
+          ...f, 'fichaBovinaId': f['ficha_id'], 'fechaFin': f['fecha_fin'],
+          'fechaProgramada': f['fecha_programada'],
+        }];
+      } on Exception {
+        throw const ErrorCuidados('No se pudieron cargar las indicaciones. Reintentá.');
+      }
     }
     final pedido = http.Request(metodo, Uri.parse('$_api/api/$ruta'))
       ..headers['Authorization'] = 'Bearer $token'
@@ -172,11 +198,15 @@ class Cuidados {
     ]);
     final tratamientos = resultados[0] as List<dynamic>;
     final prevenciones = resultados[1] as List<dynamic>;
+    final hoy = DateTime.now();
+    final dia = DateTime(hoy.year, hoy.month, hoy.day);
     return [
       for (final valor in tratamientos)
         if (valor is Map<String, dynamic> &&
             activos.contains(valor['fichaBovinaId']) &&
-            valor['anulado'] != true)
+            valor['anulado'] != true &&
+            valor['fechaFin'] == null &&
+            (valor['inicio'] == null || !DateTime.parse(valor['inicio'] as String).isAfter(dia)))
           Indicacion(
             id: valor['id'] as String,
             animalId: valor['fichaBovinaId'] as String,
@@ -184,11 +214,17 @@ class Cuidados {
             tipo: 'Tratamiento',
             dosis: (valor['dosis'] as num?)?.toDouble(),
             unidad: valor['unidad'] as String?,
+            via: valor['via'] as String?,
+            frecuencia: valor['frecuencia'] as String?,
+            duracion: valor['duracion'] as String?,
+            inicio: valor['inicio'] == null ? null : DateTime.parse(valor['inicio'] as String),
+            retiro: valor['retiro'] as String?,
           ),
       for (final valor in prevenciones)
         if (valor is Map<String, dynamic> &&
             activos.contains(valor['fichaBovinaId']) &&
-            valor['estado'] == 'Pendiente')
+            (valor['estado'] as String?)?.toLowerCase() == 'pendiente' &&
+            (valor['tipo'] as String?)?.toLowerCase() != 'control')
           Indicacion(
             id: valor['id'] as String,
             animalId: valor['fichaBovinaId'] as String,

@@ -1,0 +1,47 @@
+VetLink - prueba local del 22/11/2026
+
+Entrada de demostracion: lib/main_vista_previa.dart
+Datos completamente simulados en memoria; no se aplicaron migraciones ni se
+escribieron registros en la base real. La entrada normal sigue siendo lib/main.dart.
+
+Resultados:
+- Flutter 3.47.9 y Dart 3.13.7 (mismos requisitos del proyecto).
+- flutter analyze: sin observaciones.
+- flutter test: 125 pruebas correctas.
+- PostgreSQL en memoria: 26 comprobaciones correctas.
+- APK debug compilado e instalado en Medium_Phone_API_36.1.
+- Guardado visual de tratamiento y aplicacion comprobado en el navegador.
+
+Servidor de vista previa: http://localhost:8766
+APK: build\app\outputs\flutter-apk\app-debug.apk
+
+Para ejecutar desde PowerShell en la carpeta que contiene pubspec.yaml:
+$env:PUB_CACHE = 'G:\codex-vetlink-tools\pub-cache'
+$env:GRADLE_USER_HOME = 'G:\codex-vetlink-tools\gradle'
+$env:TEMP = 'G:\codex-vetlink-tools\temp'
+$env:TMP = $env:TEMP
+& 'G:\codex-vetlink-tools\flutter\bin\flutter.bat' run -t lib/main_vista_previa.dart
+
+Para usar el navegador:
+& 'G:\codex-vetlink-tools\flutter\bin\flutter.bat' run -d web-server --web-port 8766 -t lib/main_vista_previa.dart
+
+Entorno Windows:
+Se uso G: por falta de espacio en C:. Los siguientes enlaces de directorio
+conservan las rutas originales y todos sus datos:
+- build -> G:\codex-vetlink-tools\project-build
+- C:\Users\sergi\.android\avd\Medium_Phone.avd -> G:\codex-vetlink-tools\android-avd
+- C:\Users\sergi\AppData\Local\Android\Sdk\ndk -> G:\codex-vetlink-tools\android-ndk
+Estas carpetas de G: son parte del entorno de desarrollo actual; conservarlas.
+El cache de Gradle de esta prueba tiene kotlin.incremental=false para permitir
+que el proyecto y PUB_CACHE esten en unidades diferentes. No se cambio el
+gradle.properties del proyecto ni el PATH del sistema.
+
+Pendiente para datos reales:
+- Completar config.json con los valores publicos de Supabase.
+- Aplicar una vez supabase/migrations/202611220002_tratamientos_prevencion.sql.
+- Verificar el esquema y los permisos en el proyecto real del equipo.
+- El conector de Figma siguio rechazando la lectura por permisos. Se reutilizaron
+  los componentes, tipografias, colores, iconos y assets actuales del proyecto;
+  no se pudo comprobar la coincidencia exacta con el archivo de Figma.
+
+No se subieron cambios a GitHub.

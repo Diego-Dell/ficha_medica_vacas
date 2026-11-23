@@ -76,3 +76,67 @@ flutter run --dart-define-from-file=config.json
 ```bash
 flutter test
 ```
+
+## Tratamientos y prevención (Integrante 3)
+
+El panel del veterinario abre **Tratamiento** y **Prevención**. La ficha del animal
+muestra las indicaciones vigentes y cerradas, el retiro, la prevención y sus estados.
+Solo el veterinario de una granja confirmada puede prescribir, modificar, finalizar
+o completar un control. El dueño y el trabajador pueden consultar el historial.
+
+- Cada tratamiento se vincula a una atención clínica vigente del mismo animal.
+- Modificar cierra la indicación anterior con fecha y motivo, y crea una nueva.
+  Ambas operaciones pertenecen a una transacción PostgreSQL. La referencia
+  `anterior_id` conserva la relación entre las indicaciones; no se sobrescriben dosis.
+- Finalizar conserva medicamento, dosis, vía, frecuencia, duración y retiro.
+- La prevención se programa con tipo, nombre y fecha y comienza Pendiente.
+  Los controles se completan desde la ficha y quedan Realizados. Vacunas y
+  desparasitaciones se aplican mediante el módulo existente del trabajador.
+- El trabajador ve las instrucciones y el retiro. Los tratamientos cerrados,
+  anulados o que aún no comenzaron no aparecen como opciones de aplicación.
+
+Se conserva Flutter/Dart, los widgets y assets de marca, Singleton + Facade,
+Supabase Auth y PostgreSQL. `logic/tratamientos.dart` usa consultas protegidas
+por RLS y funciones de Supabase para el guardado atómico. Las atenciones y
+aplicaciones continúan usando la API existente. No se agregan paquetes Flutter.
+
+### Activación con datos reales
+
+La migración `supabase/migrations/202611220002_tratamientos_prevencion.sql` está
+preparada **para aplicar una vez sobre el esquema existente**. Este desarrollo
+no la ejecuta sobre Supabase. Agrega retiro, referencia a la indicación anterior,
+funciones con validación del rol y versión, y protección del historial. El PUT
+antiguo de tratamientos ya no puede cambiar la prescripción sobre la misma fila:
+debe usarse el flujo de reemplazo. Las aplicaciones existentes se conservan.
+
+Completar `config.json` como indica Configuración y ejecutar la entrada normal:
+
+```bash
+flutter run --dart-define-from-file=config.json
+```
+
+### Vista previa con datos simulados
+
+```bash
+flutter run -t lib/main_vista_previa.dart
+```
+
+No necesita `config.json`: las respuestas HTTP y los registros se resuelven en
+memoria y se reinician al arrancar. La franja superior permite alternar entre
+Veterinario y Trabajador. En Ganado, abrir Lucera para probar modificar/finalizar
+el tratamiento de ejemplo y completar el control. También puede ejecutarse con
+`-d web-server --web-port 8766` para revisar la app en el navegador.
+
+Las pruebas de `test/tratamientos_test.dart` cubren los formularios, el vínculo
+con la atención, permisos, retiro, conflictos de versión y el historial.
+`test/cuidados_api_test.dart` verifica el filtrado de indicaciones cerradas.
+
+Para verificar las funciones PostgreSQL en memoria, instalar `@electric-sql/pglite`
+como herramienta de pruebas y ejecutar `node supabase/tests/tratamientos_prevencion.mjs`.
+La prueba construye un esquema mínimo con los nombres y tipos del backend;
+no usa una conexión real ni guarda una base de datos en disco. La comprobación
+contra el esquema real queda pendiente hasta configurar Supabase.
+
+Validación local: Flutter 3.47.9 / Dart 3.13.7, 125 pruebas Flutter, analizador
+sin observaciones y 26 comprobaciones PostgreSQL en memoria. Se generó un APK
+debug de la vista previa; el servidor web permite revisar el mismo módulo.

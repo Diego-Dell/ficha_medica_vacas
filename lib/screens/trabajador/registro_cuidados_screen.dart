@@ -310,7 +310,7 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
                     advertencia: true,
                   );
                 }
-                if (!estado.hasData) {
+                if (estado.connectionState != ConnectionState.done || !estado.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final opciones = estado.data!;
@@ -345,6 +345,15 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
                   ),
                 );
               },
+            ),
+            if (_indicacion?.esTratamiento == true) AvisoVetLink(
+              titulo: 'Indicación del veterinario',
+              texto: [
+                if (_indicacion!.via != null) 'Vía: ${_indicacion!.via}',
+                if (_indicacion!.frecuencia != null) 'Frecuencia: ${_indicacion!.frecuencia}',
+                if (_indicacion!.duracion != null) 'Duración: ${_indicacion!.duracion}',
+                if (_indicacion!.retiro?.isNotEmpty == true) 'Retiro: ${_indicacion!.retiro}',
+              ].join('\n'),
             ),
             CampoEtiquetado(
               etiqueta: 'Fecha y hora de aplicación *',

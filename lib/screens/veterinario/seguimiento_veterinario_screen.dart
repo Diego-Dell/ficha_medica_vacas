@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/panel_rol.dart';
 import 'registro_clinico_screen.dart';
+import 'tratamiento_screen.dart';
+import 'prevencion_screen.dart';
 
 // 1. Inicio del veterinario; Consulta está en la pestaña Ganado.
 class SeguimientoVeterinarioScreen extends StatelessWidget {
@@ -24,8 +26,8 @@ class SeguimientoVeterinarioScreen extends StatelessWidget {
       Accesos(children: [
         Acceso(titulo: 'Clínica', icono: 'clinica', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClinicoScreen()))),
         Acceso(titulo: 'Reproducción', icono: 'reproduccion', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClinicoScreen(reproductivo: true)))),
-        const Acceso(titulo: 'Tratamiento', icono: 'tratamiento', alPresionar: null),
-        const Acceso(titulo: 'Prevención', icono: 'vacuna', alPresionar: null),
+        Acceso(titulo: 'Tratamiento', icono: 'tratamiento', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TratamientoScreen()))),
+        Acceso(titulo: 'Prevención', icono: 'vacuna', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrevencionScreen()))),
       ]),
     ],
   );

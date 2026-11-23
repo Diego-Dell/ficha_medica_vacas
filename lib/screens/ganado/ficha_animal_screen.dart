@@ -6,6 +6,7 @@ import '../../models/animal.dart';
 import '../../models/miembro.dart';
 import '../../widgets/vetlink.dart';
 import '../../widgets/historial_cuidados.dart';
+import '../../widgets/historial_tratamientos.dart';
 import '../inicio_por_rol.dart';
 import 'dar_de_baja_screen.dart';
 import '../../widgets/historial_clinico.dart';
@@ -27,6 +28,7 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
   // Historial clínico y aplicaciones registradas para el animal.
   List<Widget> _registros(Animal animal) => [
     HistorialClinico(animalId: animal.id),
+    HistorialTratamientos(animal: animal),
     HistorialCuidados(animal: animal),
   ];
 

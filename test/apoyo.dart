@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ficha_medica_vacas/logic/fichas.dart';
 import 'package:ficha_medica_vacas/logic/granjas.dart';
+import 'package:ficha_medica_vacas/logic/tratamientos.dart';
 import 'package:ficha_medica_vacas/models/granja.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
 
@@ -110,6 +111,7 @@ void simularDatos(
   );
   Granjas.instance.cliente = cliente;
   Fichas.instance.cliente = cliente;
+  Tratamientos.instance.cliente = cliente;
 }
 
 /// 2. Deja a la persona trabajando en Los Pinos con el rol indicado.
