@@ -346,6 +346,16 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
                 );
               },
             ),
+            if (_indicacion != null && (_indicacion!.via != null || _indicacion!.retiro?.isNotEmpty == true))
+              AvisoVetLink(
+                titulo: 'Instrucciones veterinarias',
+                detalle: [
+                  if (_indicacion!.via != null) 'Vía: ${_indicacion!.via}',
+                  if (_indicacion!.frecuencia != null) 'Frecuencia: ${_indicacion!.frecuencia}',
+                  if (_indicacion!.duracion != null) 'Duración: ${_indicacion!.duracion}',
+                  if (_indicacion!.retiro?.isNotEmpty == true) 'Retiro: ${_indicacion!.retiro}',
+                ].join('\n'),
+              ),
             CampoEtiquetado(
               etiqueta: 'Fecha y hora de aplicación *',
               child: _CampoFecha(fecha: _fecha, alPresionar: _elegirFecha),

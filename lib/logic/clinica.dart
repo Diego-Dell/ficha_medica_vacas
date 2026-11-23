@@ -61,6 +61,9 @@ class Clinica {
     on Exception { throw const FalloClinica('No se pudieron cargar los antecedentes. Reintentá'); }
   }
 
+  Future<List<RegistroClinico>> atencionesDelAnimal(String animalId) =>
+      antecedentes(animalId, reproductivos: false);
+
   Future<String?> registrar({required bool reproductivo, required Map<String, dynamic> datos}) async {
     try {
       await _pedir('POST', reproductivo ? '/eventosreproductivos' : '/atencionesclinicas', datos);
