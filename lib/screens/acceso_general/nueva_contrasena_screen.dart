@@ -65,7 +65,7 @@ class _NuevaContrasenaScreenState extends State<NuevaContrasenaScreen> {
                 autocorrect: false,
                 enableSuggestions: false,
                 textInputAction: TextInputAction.next,
-                decoration: decoracionCampo().copyWith(
+                decoration: decoracionCampo(icono: 'candado').copyWith(
                   suffixIcon: IconButton(
                     tooltip: _mostrar
                         ? 'Ocultar contraseña'
@@ -92,7 +92,7 @@ class _NuevaContrasenaScreenState extends State<NuevaContrasenaScreen> {
                 enableSuggestions: false,
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _guardar(),
-                decoration: decoracionCampo(),
+                decoration: decoracionCampo(icono: 'candado'),
                 validator: (valor) =>
                     requerido(valor) ??
                     (valor != _clave.text

@@ -7,12 +7,12 @@ import '../../logic/granjas.dart';
 import '../../logic/sesion.dart';
 import '../administrador/administracion_screen.dart';
 import '../../widgets/vetlink.dart';
-import '../../widgets/pantalla.dart';
 import '../inicio_por_rol.dart';
 import 'crear_cuenta_screen.dart';
 import 'recuperar_screen.dart';
 import '../dueno_granja/registrar_granja_screen.dart';
 import 'seleccionar_granja_screen.dart';
+import 'aceptar_invitacion_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _contrasena = TextEditingController();
   bool _enviando = false;
   StreamSubscription<AuthState>? _enlaces;
+  bool _abriendoInvitacion = false;
 
   @override
   void initState() {
@@ -34,24 +35,75 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 1. Si la app se abre desde el enlace de confirmación, entra directo a la cuenta ya confirmada.
     _enlaces = Sesion.instance.alAbrirEnlace(
-      alConfirmar: () {
-        if (!mounted) return;
-        Navigator.popUntil(context, (ruta) => ruta.isFirst);
-        avisar(context, 'Tu correo quedó confirmado');
-        _entrar();
+      alInvitar: () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _abrirInvitacion();
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
       },
-      alFallar: (mensaje) => WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) avisar(context, mensaje);
-      }),
+      alConfirmar: () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Navigator.popUntil(context, (ruta) => ruta.isFirst);
+          avisar(context, 'Tu correo quedó confirmado');
+          _entrar();
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
+      },
+      alFallar: (mensaje) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) avisar(context, mensaje);
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
+      },
     );
   }
 
   @override
   void dispose() {
+    Sesion.instance.dejarDeEscucharEnlaces();
     _enlaces?.cancel();
     _correo.dispose();
     _contrasena.dispose();
     super.dispose();
+  }
+
+  Future<void> _abrirInvitacion() async {
+    if (_abriendoInvitacion) return;
+    _abriendoInvitacion = true;
+    try {
+      if (Sesion.instance.iniciada) {
+        final invitaciones = await Granjas.instance.misInvitaciones();
+        if (!mounted) return;
+        if (invitaciones.isNotEmpty) {
+          Navigator.popUntil(context, (ruta) => ruta.isFirst);
+          await _entrar();
+          return;
+        }
+        final cambiar = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Abrir invitación'),
+            content: Text(
+              'La sesión abierta es ${Sesion.instance.usuario}. Para aceptar la invitación usá el correo que la recibió.',
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Volver')),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cambiar cuenta')),
+            ],
+          ),
+        );
+        if (cambiar != true || !mounted) return;
+        await Sesion.instance.cerrar();
+        if (!mounted) return;
+      }
+      Navigator.popUntil(context, (ruta) => ruta.isFirst);
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => const CrearCuentaScreen()));
+    } on Exception {
+      if (mounted) avisar(context, 'No se pudo consultar la invitación. Revisá la conexión e intentá nuevamente');
+    } finally {
+      _abriendoInvitacion = false;
+    }
   }
 
   Future<void> _ingresar() async {
@@ -65,7 +117,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 3. Muestra el error o abre la pantalla que corresponde a la cuenta.
     if (error != null) {
-      avisar(context, error);
+      if (error == 'Falta confirmar el correo') {
+        final correo = _correo.text.trim();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            action: SnackBarAction(
+              label: 'Reenviar correo',
+              onPressed: () async {
+                final fallo = await Sesion.instance.reenviarConfirmacion(correo);
+                if (mounted) avisar(context, fallo ?? 'Se solicitó el correo de confirmación. Revisá tu correo y spam');
+              },
+            ),
+          ),
+        );
+      } else {
+        avisar(context, error);
+      }
     } else {
       await _entrar();
     }
@@ -81,6 +149,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AdministracionScreen()));
         return;
       }
+
+      final errorDocumento = await Granjas.instance.subirDocumentosPendientes();
+      if (errorDocumento != null && mounted) avisar(context, errorDocumento);
 
       // 2. Pregunta por las invitaciones pendientes de la cuenta.
       await _atenderInvitaciones();
@@ -110,16 +181,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _atenderInvitaciones() async {
     for (final invitacion in await Granjas.instance.misInvitaciones()) {
       if (!mounted) return;
-      final acepta = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Tienes una invitación'),
-          content: Text('Te invitaron a una granja como ${invitacion.rol.etiqueta}. ¿Quieres unirte?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Ahora no')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Aceptar')),
-          ],
-        ),
+      final acepta = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => AceptarInvitacionScreen(invitacion: invitacion)),
       );
       if (!(acepta ?? false)) continue;
 
@@ -129,78 +193,148 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // 4. Bienvenida e inicio de sesión en una sola pantalla: foto, marca y formulario.
   @override
   Widget build(BuildContext context) {
-    return Pantalla(
-      titulo: 'Bienvenido a VetLink',
-      volver: false,
-      subtitulo: 'El cuidado de tu ganado, en un mismo lugar.',
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: AspectRatio(
-            aspectRatio: 2,
-            child: Image.asset(
-              'assets/images/login_vaca.png',
-              fit: BoxFit.cover,
-              semanticLabel: 'Vaca lechera en un potrero',
+    final tema = Theme.of(context).textTheme;
+    return Scaffold(
+      backgroundColor: colorFondo,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 260,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    'assets/images/login_vaca.png',
+                    fit: BoxFit.cover,
+                    semanticLabel: 'Vaca lechera en un potrero',
+                  ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x8C24402F), Color(0x0024402F), Color(0xE624402F)],
+                      ),
+                    ),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset('assets/images/logo.png', width: 40, height: 40),
+                          ),
+                          const SizedBox(width: 10),
+                          const Padding(
+                            padding: EdgeInsets.only(top: 6),
+                            child: Text(
+                              'VetLink',
+                              style: TextStyle(
+                                fontFamily: fuenteTitulos,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Form(
-          key: _form,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CampoEtiquetado(
-                etiqueta: 'Correo electrónico',
-                child: TextFormField(
-                  controller: _correo,
-                  decoration: decoracionCampo(),
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  validator: requerido,
+            Container(
+              decoration: const BoxDecoration(
+                color: colorFondo,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              transform: Matrix4.translationValues(0, -28, 0),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 8),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Bienvenido a VetLink', style: tema.headlineMedium),
+                      const SizedBox(height: 6),
+                      Text(
+                        'El cuidado de tu ganado, en un mismo lugar.',
+                        style: tema.bodyMedium?.copyWith(color: colorTextoSuave),
+                      ),
+                      const SizedBox(height: 24),
+                      Form(
+                        key: _form,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            CampoEtiquetado(
+                              etiqueta: 'Correo electrónico',
+                              child: TextFormField(
+                                controller: _correo,
+                                decoration: decoracionCampo(icono: 'correo'),
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autocorrect: false,
+                                validator: requerido,
+                              ),
+                            ),
+                            CampoEtiquetado(
+                              etiqueta: 'Contraseña',
+                              child: TextFormField(
+                                controller: _contrasena,
+                                decoration: decoracionCampo(icono: 'candado'),
+                                obscureText: true,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) => _ingresar(),
+                                validator: requerido,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          style: TextButton.styleFrom(foregroundColor: colorVerde),
+                          onPressed: () =>
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const RecuperarScreen())),
+                          child: const Text('Olvidé mi contraseña', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      BotonPrincipal(
+                        texto: _enviando ? 'Ingresando...' : 'Iniciar sesión',
+                        alPresionar: _enviando ? null : _ingresar,
+                      ),
+                      BotonSecundario(
+                        texto: 'Registrar mi granja',
+                        alPresionar: () =>
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistrarGranjaScreen())),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(foregroundColor: colorVerde),
+                        onPressed: () =>
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const CrearCuentaScreen())),
+                        child: const Text('Me invitaron: crear cuenta'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              CampoEtiquetado(
-                etiqueta: 'Contraseña',
-                child: TextFormField(
-                  controller: _contrasena,
-                  decoration: decoracionCampo(),
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _ingresar(),
-                  validator: requerido,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        BotonPrincipal(
-          texto: _enviando ? 'Ingresando...' : 'Iniciar sesión',
-          alPresionar: _enviando ? null : _ingresar,
-        ),
-        BotonSecundario(
-          texto: 'Olvidé mi contraseña',
-          alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecuperarScreen())),
-        ),
-        BotonSecundario(
-          texto: 'Registrar mi granja',
-          alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistrarGranjaScreen())),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '¿Sos veterinario o trabajador? Pedile al dueño que te invite por correo.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorTextoSuave),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(foregroundColor: colorVerde),
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CrearCuentaScreen())),
-          child: const Text('Me invitaron: crear cuenta'),
-        ),
-      ],
+      ),
     );
   }
 }

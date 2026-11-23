@@ -1,16 +1,11 @@
-import 'package:file_picker/file_picker.dart';
+import '../logic/documentos.dart';
+
 import 'package:flutter/material.dart';
 
 import 'vetlink.dart';
 
-/// 1. Abre el selector de archivos y devuelve el nombre del documento elegido.
-Future<String?> elegirDocumento() async {
-  final archivos = await FilePicker.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
-  );
-  return archivos.isEmpty ? null : archivos.first.name;
-}
+/// 1. Conserva el documento elegido para subirlo con una sesión confirmada.
+Future<String?> elegirDocumento() => Documentos.elegir();
 
 /// 2. Valida que la superficie sea un número mayor a 0.
 String? superficieValida(String? valor) {
@@ -34,6 +29,7 @@ class CamposGranja extends StatelessWidget {
     this.compacto = false,
     this.etiquetaNombre = 'Nombre *',
     this.etiquetaDocumento = 'Documentación del terreno *',
+    this.documentoInicial,
   });
 
   final bool compacto;
@@ -44,6 +40,7 @@ class CamposGranja extends StatelessWidget {
   final Future<String?> Function() elegir;
   final String etiquetaNombre;
   final String etiquetaDocumento;
+  final String? documentoInicial;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +51,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: etiquetaNombre,
           child: TextFormField(
             controller: nombre,
-            decoration: decoracionCampo(pista: compacto ? null : 'Los Pinos'),
+            decoration: decoracionCampo(pista: compacto ? null : 'Los Pinos', icono: 'granja'),
             textCapitalization: TextCapitalization.words,
             validator: requerido,
           ),
@@ -63,7 +60,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: 'Superficie (hectáreas) *',
           child: TextFormField(
             controller: superficie,
-            decoration: decoracionCampo(pista: compacto ? null : '18'),
+            decoration: decoracionCampo(pista: compacto ? null : '18', icono: 'ubicacion'),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             validator: superficieValida,
           ),
@@ -72,7 +69,7 @@ class CamposGranja extends StatelessWidget {
           etiqueta: 'RUNSA *',
           child: TextFormField(
             controller: runsa,
-            decoration: decoracionCampo(pista: compacto ? null : 'SC-02418'),
+            decoration: decoracionCampo(pista: compacto ? null : 'SC-02418', icono: 'documento'),
             textCapitalization: TextCapitalization.characters,
             validator: requerido,
           ),
@@ -80,14 +77,21 @@ class CamposGranja extends StatelessWidget {
         CampoEtiquetado(
           etiqueta: etiquetaDocumento,
           child: FormField<String>(
-            validator: requerido,
+            initialValue: documentoInicial,
+            validator: (valor) => requerido(valor) ?? (valor!.toLowerCase().endsWith('.pdf') ? null : 'Adjuntá un PDF'),
             builder: (campo) => InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () async {
-                final archivo = await elegir();
-                if (archivo == null) return;
-                campo.didChange(archivo);
-                alElegirDocumento(archivo);
+                try {
+                  final archivo = await elegir();
+                  if (archivo == null || !campo.mounted) return;
+                  campo.didChange(archivo);
+                  alElegirDocumento(archivo);
+                } on FormatException catch (error) {
+                  if (context.mounted) avisar(context, error.message);
+                } on Exception {
+                  if (context.mounted) avisar(context, 'No se pudo leer el archivo. Elegí otro documento');
+                }
               },
               child: InputDecorator(
                 decoration: decoracionCampo().copyWith(
@@ -95,7 +99,7 @@ class CamposGranja extends StatelessWidget {
                   prefixIcon: compacto ? const Icon(Icons.upload_outlined, size: 18, color: colorVerde) : null,
                 ),
                 child: Text(
-                  campo.value == null ? 'Elegir archivo' : '${campo.value} ✓',
+                  campo.value == null ? 'Elegir PDF (hasta 10 MB)' : '${Documentos.nombre(campo.value!)} ✓',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -114,24 +118,7 @@ class AvisoRol extends StatelessWidget {
   final String titulo;
   final String texto;
 
+  // 1. Usa el aviso informativo del manual de marca.
   @override
-  Widget build(BuildContext context) {
-    final tema = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: colorVerdeSuave, borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            titulo,
-            style: tema.labelLarge?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(texto, style: tema.bodySmall?.copyWith(color: colorTextoSuave)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AvisoVetLink(titulo: titulo, texto: texto);
 }

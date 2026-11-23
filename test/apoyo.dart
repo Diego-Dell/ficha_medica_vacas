@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ficha_medica_vacas/logic/fichas.dart';
 import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/models/granja.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
@@ -31,14 +32,17 @@ const tablasEquipo = <String, Object>{
   'vinculaciones': [
     {
       'rol': 'dueno',
+      'cuenta_id': 'dueno1',
       'cuentas': {'nombre': 'Ana Pérez', 'identificador': 'ana@ejemplo.com'},
     },
     {
       'rol': 'veterinario',
+      'cuenta_id': 'vet1',
       'cuentas': {'nombre': 'Sofía Rojas', 'identificador': 'sofia@ejemplo.com'},
     },
     {
       'rol': 'trabajador',
+      'cuenta_id': 'trabajador1',
       'cuentas': {'nombre': null, 'identificador': 'luis@ejemplo.com'},
     },
   ],
@@ -56,7 +60,7 @@ void simularDatos(
   bool correoFalla = false,
   String? rpcQueFalla,
 }) {
-  Granjas.instance.cliente = SupabaseClient(
+  final cliente = SupabaseClient(
     'https://prueba.supabase.co',
     'clave',
     authOptions: const AuthClientOptions(autoRefreshToken: false),
@@ -67,6 +71,7 @@ void simularDatos(
       if (errorAlGuardar != null && pedido.method != 'GET') {
         return http.Response(jsonEncode({'code': errorAlGuardar, 'message': 'error'}), 409, request: pedido);
       }
+      if (pedido.url.path.contains('/storage/v1/object/')) return http.Response('{"Key":"archivo"}', 200, request: pedido, headers: {'content-type': 'application/json'});
       final nombre = pedido.url.pathSegments.last;
       if (nombre == rpcQueFalla) {
         return http.Response(jsonEncode({'code': 'P0001', 'message': 'error'}), 400, request: pedido);
@@ -83,14 +88,28 @@ void simularDatos(
       if (nombre == 'invitaciones' && pedido.method == 'POST') {
         return http.Response(jsonEncode({'id': 'nueva'}), 201, request: pedido);
       }
+      if (nombre == 'mis_invitaciones') {
+        return http.Response.bytes(utf8.encode(jsonEncode(tablas['invitaciones'] ?? [])), 200,
+          request: pedido, headers: {'content-type': 'application/json; charset=utf-8'});
+      }
+      var datos = tablas[nombre] ?? (nombre == 'es_administrador' ? false : const []);
+      // 3. Una consulta .single() recibe la fila con ese id, o la primera.
+      final filas = datos;
+      if ((pedido.headers['Accept'] ?? '').contains('vnd.pgrst.object') && filas is List && filas.isNotEmpty) {
+        final id = pedido.url.queryParameters['id']?.replaceFirst('eq.', '');
+        final lista = filas.cast<Map<String, dynamic>>();
+        datos = lista.firstWhere((f) => f['id'] == id, orElse: () => lista.first);
+      }
       return http.Response.bytes(
-        utf8.encode(jsonEncode(tablas[nombre] ?? (nombre == 'es_administrador' ? false : const []))),
+        utf8.encode(jsonEncode(datos)),
         200,
         request: pedido,
         headers: {'content-type': 'application/json; charset=utf-8'},
       );
     }),
   );
+  Granjas.instance.cliente = cliente;
+  Fichas.instance.cliente = cliente;
 }
 
 /// 2. Deja a la persona trabajando en Los Pinos con el rol indicado.

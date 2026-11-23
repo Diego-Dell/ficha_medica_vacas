@@ -78,43 +78,31 @@ class _OpcionGranja extends StatelessWidget {
     final actual = Granjas.instance.esActual(granja);
 
     // 1. Cada granja muestra el rol de la persona y si ya está confirmada.
-    final estado = granja.confirmada ? (actual ? 'Granja actual' : 'Confirmada') : 'En revisión';
+    final estado = granja.confirmada ? (actual ? 'Granja actual' : 'Confirmada') : granja.rechazada ? 'Solicitud rechazada' : 'En revisión';
+    // 2. Tarjeta con ícono; entrar a la granja recupera el rol guardado en ella.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: actual ? colorVerdeSuave : Colors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: colorBorde),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          // 2. Entrar a la granja recupera el rol guardado en ella.
-          onTap: () => InicioPorRol.entrar(context, vinculo),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        granja.nombre,
-                        style: tema.titleSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${vinculo.rol.etiqueta} · $estado',
-                        style: tema.bodySmall?.copyWith(color: granja.confirmada ? colorTextoSuave : colorAmbarTexto),
-                      ),
-                    ],
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Tarjeta(
+        alPresionar: () => InicioPorRol.entrar(context, vinculo),
+        child: Row(
+          children: [
+            BurbujaIcono('granja', fondo: actual ? colorVerde : colorVerdeSuave, color: actual ? Colors.white : colorVerde),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(granja.nombre, style: tema.titleMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${vinculo.rol.etiqueta} · $estado',
+                    style: tema.bodySmall?.copyWith(color: granja.confirmada ? colorTextoSuave : colorAmbarTexto),
                   ),
-                ),
-                Icon(actual ? Icons.check : Icons.chevron_right, color: colorVerde),
-              ],
+                ],
+              ),
             ),
-          ),
+            Icono(actual ? 'check' : 'flecha', color: actual ? colorVerde : colorTextoSuave, tam: 20),
+          ],
         ),
       ),
     );

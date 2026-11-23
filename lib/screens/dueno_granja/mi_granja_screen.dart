@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../logic/fichas.dart';
 import '../../logic/granjas.dart';
-import '../../logic/sesion.dart';
+import '../../models/animal.dart';
 import '../../models/miembro.dart';
 import '../../widgets/panel_rol.dart';
 import '../../widgets/vetlink.dart';
+import 'datos_granja_screen.dart';
 import 'miembros_screen.dart';
 import 'registrar_otra_granja_screen.dart';
 
+// 1. Inicio del dueño: resumen, ganado por etapa y equipo.
 class MiGranjaScreen extends StatefulWidget {
   const MiGranjaScreen({super.key});
 
@@ -16,92 +19,150 @@ class MiGranjaScreen extends StatefulWidget {
 }
 
 class _MiGranjaScreenState extends State<MiGranjaScreen> {
-  late Future<Resumen> _resumen = Granjas.instance.resumen();
+  late final Future<List<Animal>> _ganado = Fichas.instance.activos();
+  late final Future<List<Miembro>> _equipo = Granjas.instance.miembros();
 
-  /// 1. Vuelve a pedir los datos a Supabase.
-  void _recargar() {
-    setState(() {
-      _resumen = Granjas.instance.resumen();
-    });
-  }
-
-  /// 2. Abre una pantalla y actualiza los datos al volver.
-  Future<void> _abrir(Widget pantalla) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
-    if (mounted) _recargar();
-  }
+  void _abrir(Widget pantalla) => Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
 
   @override
   Widget build(BuildContext context) {
     final datos = Granjas.instance;
-    final esDueno = datos.rol == RolMiembro.dueno;
     return PanelRol(
       rol: datos.rol.etiqueta,
       granja: datos.actual.nombre,
-      subtitulo: '${Sesion.instance.nombre} · Así está el equipo de ${datos.actual.nombre}.',
+      alRegistrarGranja: () => _abrir(const RegistrarOtraGranjaScreen()),
       children: [
-        FutureBuilder<Resumen>(
-          future: _resumen,
-          builder: (context, estado) {
-            final resumen = estado.data;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    _Dato(valor: resumen?.miembros, etiqueta: 'Miembros'),
-                    const SizedBox(width: 8),
-                    _Dato(valor: resumen?.pendientes, etiqueta: 'Invitaciones pendientes'),
-                  ],
-                ),
-                if (estado.hasError)
-                  TextButton(
-                    style: TextButton.styleFrom(foregroundColor: colorRojo),
-                    onPressed: _recargar,
-                    child: const Text('No se pudieron cargar los datos. Reintentar'),
-                  ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        if (esDueno)
-          OpcionPanel(
-            titulo: 'Miembros del equipo',
-            detalle: 'Invitar personas y comprobar su incorporación.',
-            alPresionar: () => _abrir(const MiembrosScreen()),
+        FutureBuilder<List<Animal>>(
+          future: _ganado,
+          builder: (context, ganado) => FutureBuilder<List<Miembro>>(
+            future: _equipo,
+            builder: (context, equipo) => _Resumen(animales: ganado.data?.length, miembros: equipo.data?.length),
           ),
-        BotonSecundario(texto: 'Registrar otra granja', alPresionar: () => _abrir(const RegistrarOtraGranjaScreen())),
+        ),
+        const SizedBox(height: 16),
+        FutureBuilder<List<Animal>>(
+          future: _ganado,
+          builder: (context, ganado) => ganado.hasData ? _PorEtapa(ganado.data!) : const SizedBox.shrink(),
+        ),
+        if (datos.rol == RolMiembro.dueno)
+          FutureBuilder<List<Miembro>>(
+            future: _equipo,
+            builder: (context, equipo) => OpcionPanel(
+              titulo: 'Equipo',
+              detalle: equipo.hasData ? '${equipo.data!.length} miembros' : null,
+              icono: 'miembros',
+              alPresionar: () => _abrir(const MiembrosScreen()),
+            ),
+          ),
+        // 4. Única entrada para actualizar el RUNSA.
+        if (datos.rol == RolMiembro.dueno)
+          OpcionPanel(
+            titulo: 'Datos de la granja',
+            detalle: 'RUNSA ${datos.actual.runsa}',
+            icono: 'granja',
+            alPresionar: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const DatosGranjaScreen()));
+              if (mounted) setState(() {});
+            },
+          ),
       ],
     );
   }
 }
 
-class _Dato extends StatelessWidget {
-  const _Dato({required this.valor, required this.etiqueta});
+// 2. Tarjeta verde con las cifras principales.
+class _Resumen extends StatelessWidget {
+  const _Resumen({this.animales, this.miembros});
 
-  final int? valor;
-  final String etiqueta;
+  final int? animales, miembros;
 
   @override
   Widget build(BuildContext context) {
-    final tema = Theme.of(context).textTheme;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: colorBorde),
-          borderRadius: BorderRadius.circular(10),
-        ),
+    Widget cifra(int? n, String texto) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            n?.toString() ?? '–',
+            style: const TextStyle(
+              fontFamily: fuenteTitulos,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          Text(texto, style: const TextStyle(fontSize: 12, color: colorVerdeSuave)),
+        ],
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: colorVerde, borderRadius: BorderRadius.circular(24)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Operaciones de la granja',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorVerdeSuave),
+          ),
+          const SizedBox(height: 12),
+          Row(children: [cifra(animales, 'Animales activos'), cifra(miembros, 'Miembros')]),
+        ],
+      ),
+    );
+  }
+}
+
+// 3. Barras con la cantidad de animales por etapa.
+class _PorEtapa extends StatelessWidget {
+  const _PorEtapa(this.ganado);
+
+  final List<Animal> ganado;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ganado.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Tarjeta(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${valor ?? '–'}',
-              style: tema.headlineSmall?.copyWith(color: colorVerdeOscuro, fontWeight: FontWeight.w700),
-            ),
-            Text(etiqueta, style: tema.labelSmall?.copyWith(color: colorTextoSuave)),
+            Text('Ganado por etapa', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 12),
+            for (final etapa in Etapa.values.reversed)
+              Builder(
+                builder: (context) {
+                  final n = ganado.where((a) => a.etapa == etapa).length;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      children: [
+                        SizedBox(width: 76, child: Text(etapa.etiqueta, style: Theme.of(context).textTheme.bodySmall)),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: n / ganado.length,
+                              minHeight: 8,
+                              color: colorVerde,
+                              backgroundColor: colorVerdeSuave,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 32,
+                          child: Text(
+                            '$n',
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(fontWeight: FontWeight.w600, color: colorVerdeOscuro),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),

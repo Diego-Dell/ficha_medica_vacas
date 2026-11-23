@@ -1,64 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'screens/acceso_general/login_screen.dart';
-import 'screens/trabajador/cuidados_hoy_screen.dart';
-import 'screens/veterinario/seguimiento_veterinario_screen.dart';
-import 'widgets/pantalla.dart';
+import 'models/miembro.dart';
+import 'preview/datos_vista_previa.dart';
+import 'screens/tratamientos_prevencion_screen.dart';
 import 'widgets/vetlink.dart';
 
-/// Entrada independiente para revisar las pantallas sin cuenta ni Supabase.
-void main() => runApp(const VistaPreviaApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding.instance.ensureSemantics();
+  final datos = DatosVistaPrevia();
+  await datos.inicializar();
+  runApp(VistaPreviaApp(datos: datos));
+}
 
-class VistaPreviaApp extends StatelessWidget {
-  const VistaPreviaApp({super.key});
+class VistaPreviaApp extends StatefulWidget {
+  const VistaPreviaApp({super.key, required this.datos});
+  final DatosVistaPrevia datos;
+  @override
+  State<VistaPreviaApp> createState() => _VistaPreviaAppState();
+}
+
+class _VistaPreviaAppState extends State<VistaPreviaApp> {
+  RolMiembro _rol = RolMiembro.veterinario;
+  final _navegador = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    title: 'Tratamientos y prevención',
+    navigatorKey: _navegador,
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorSchemeSeed: colorVerde, useMaterial3: true),
+    theme: temaVetLink(),
     locale: const Locale('es'),
     supportedLocales: const [Locale('es')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    home: const _Selector(),
-  );
-}
-
-class _Selector extends StatelessWidget {
-  const _Selector();
-
-  @override
-  Widget build(BuildContext context) {
-    void abrir(Widget pantalla) =>
-        Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
-    // En esta vista, cerrar sesión vuelve al selector; no hay una sesión real.
-    void salir() => Navigator.popUntil(context, (ruta) => ruta.isFirst);
-    return Pantalla(
-      titulo: 'Vista previa',
-      volver: false,
-      subtitulo:
-          'Datos de ejemplo. No se conecta a Supabase ni guarda cambios.',
+    builder: (context, child) => Column(
       children: [
-        BotonPrincipal(
-          texto: 'Veterinario',
-          alPresionar: () => abrir(
-            SeguimientoVeterinarioScreen(
-              granja: 'Los Pinos',
-              alCerrarSesion: salir,
+        Material(
+          color: colorAmbarFondo,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Datos simulados',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      final rol = _rol == RolMiembro.veterinario
+                          ? RolMiembro.trabajador
+                          : RolMiembro.veterinario;
+                      _navegador.currentState?.popUntil((ruta) => ruta.isFirst);
+                      widget.datos.seleccionar(rol);
+                      setState(() => _rol = rol);
+                    },
+                    child: Text(
+                      'Cambiar a ${_rol == RolMiembro.veterinario ? 'Trabajador' : 'Veterinario'}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        BotonSecundario(
-          texto: 'Trabajador',
-          alPresionar: () => abrir(
-            CuidadosHoyScreen(granja: 'Los Pinos', alCerrarSesion: salir),
-          ),
-        ),
-        BotonSecundario(
-          texto: 'Ver login',
-          alPresionar: () => abrir(const LoginScreen()),
-        ),
+        Expanded(child: child!),
       ],
-    );
-  }
+    ),
+    home: TratamientosPrevencionScreen(key: ValueKey(_rol)),
+  );
 }

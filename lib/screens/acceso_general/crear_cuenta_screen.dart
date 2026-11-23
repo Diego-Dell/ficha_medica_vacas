@@ -40,9 +40,10 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
     // 3. Muestra el error o explica el siguiente paso y vuelve al login.
     if (error != null) {
       avisar(context, error);
+      if (error == Sesion.cuentaExistente) Navigator.pop(context);
       return;
     }
-    avisar(context, 'Te enviamos un correo. Tocá el enlace desde este celular para confirmar la cuenta');
+    avisar(context, 'Revisá tu correo y spam para confirmar la cuenta. Si ya tenías cuenta, iniciá sesión');
     Navigator.pop(context);
   }
 
@@ -61,7 +62,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                 etiqueta: 'Nombre completo *',
                 child: TextFormField(
                   controller: _nombre,
-                  decoration: decoracionCampo(pista: 'Sofía Rojas'),
+                  decoration: decoracionCampo(pista: 'Sofía Rojas', icono: 'perfil'),
                   textCapitalization: TextCapitalization.words,
                   validator: requerido,
                 ),
@@ -70,7 +71,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                 etiqueta: 'Correo electrónico *',
                 child: TextFormField(
                   controller: _correo,
-                  decoration: decoracionCampo(pista: 'sofia@ejemplo.com'),
+                  decoration: decoracionCampo(pista: 'sofia@ejemplo.com', icono: 'correo'),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   validator: requerido,
@@ -80,7 +81,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                 etiqueta: 'Contraseña *',
                 child: TextFormField(
                   controller: _contrasena,
-                  decoration: decoracionCampo(),
+                  decoration: decoracionCampo(icono: 'candado'),
                   obscureText: true,
                   validator: _contrasenaValida,
                 ),

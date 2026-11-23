@@ -54,14 +54,14 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
       return;
     }
     avisar(context, 'Recibimos el registro de ${granja.nombre}. Queda en revisión');
-    Navigator.pop(context);
+    Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
     void volver() => Navigator.pop(context);
     return PantallaVetLink(
-      encabezado: EncabezadoVetLink(granja: Granjas.instance.actual.nombre, rol: 'Dueño', alVolver: volver),
+      encabezado: EncabezadoVetLink(alVolver: volver),
       titulo: 'Registrar otra granja',
       subtitulo: 'Se usará tu cuenta actual: ${Sesion.instance.usuario ?? ''}.',
       children: [
@@ -72,6 +72,7 @@ class _RegistrarOtraGranjaScreenState extends State<RegistrarOtraGranjaScreen> {
             superficie: _superficie,
             runsa: _runsa,
             elegir: widget.elegir,
+            documentoInicial: _documento,
             alElegirDocumento: (archivo) => _documento = archivo,
             etiquetaNombre: 'Nombre de la granja *',
             etiquetaDocumento: 'Documentación *',

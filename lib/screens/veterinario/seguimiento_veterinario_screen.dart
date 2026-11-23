@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/campos_granja.dart';
 import '../../widgets/panel_rol.dart';
+import 'registro_clinico_screen.dart';
+import 'tratamiento_screen.dart';
+import 'prevencion_screen.dart';
 
+// 1. Inicio del veterinario; Consulta está en la pestaña Ganado.
 class SeguimientoVeterinarioScreen extends StatelessWidget {
   const SeguimientoVeterinarioScreen({
     super.key,
@@ -18,11 +21,14 @@ class SeguimientoVeterinarioScreen extends StatelessWidget {
     granja: granja,
     alCerrarSesion: alCerrarSesion,
     children: [
-      AvisoRol(
-        titulo: 'Acceso como veterinario',
-        texto: 'Tu cuenta está vinculada a $granja con el rol que te asignó el dueño. '
-            'Si atendés otras granjas, elegilas en Mis granjas.',
-      ),
+      const TituloGrupo('Registrar'),
+      // 2. Se activan con los módulos de Clínica y Tratamientos.
+      Accesos(children: [
+        Acceso(titulo: 'Clínica', icono: 'clinica', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClinicoScreen()))),
+        Acceso(titulo: 'Reproducción', icono: 'reproduccion', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClinicoScreen(reproductivo: true)))),
+        Acceso(titulo: 'Tratamiento', icono: 'tratamiento', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TratamientoScreen()))),
+        Acceso(titulo: 'Prevención', icono: 'vacuna', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrevencionScreen()))),
+      ]),
     ],
   );
 }

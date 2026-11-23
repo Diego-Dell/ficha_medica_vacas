@@ -46,13 +46,25 @@ class _InvitarScreenState extends State<InvitarScreen> {
       avisar(context, error);
       return;
     }
-    avisar(
-      context,
-      resultado.errorCorreo == null
-          ? 'Invitación enviada a ${_correo.text.trim().toLowerCase()}'
-          : 'La invitación quedó guardada, pero el correo no salió: ${resultado.errorCorreo}. Reenvíala desde Miembros',
-    );
-    Navigator.pop(context);
+    // 5. Con el correo enviado muestra la ventana "Invitación enviada".
+    final correo = _correo.text.trim().toLowerCase();
+    if (resultado.errorCorreo == null) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => VentanaVetLink(
+          icono: 'correo',
+          titulo: 'Invitación enviada',
+          texto: '$correo recibirá un correo para unirse como ${_rol.etiqueta}.',
+          acciones: [BotonPrincipal(texto: 'Listo', alPresionar: () => Navigator.pop(context))],
+        ),
+      );
+    } else {
+      avisar(
+        context,
+        'La invitación quedó guardada, pero el correo no salió: ${resultado.errorCorreo}. Reenvíala desde Miembros',
+      );
+    }
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -74,7 +86,7 @@ class _InvitarScreenState extends State<InvitarScreen> {
                 etiqueta: 'Correo electrónico *',
                 child: TextFormField(
                   controller: _correo,
-                  decoration: decoracionCampo(pista: 'sofia@ejemplo.com'),
+                  decoration: decoracionCampo(pista: 'sofia@ejemplo.com', icono: 'correo'),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   validator: _correoValido,
@@ -82,14 +94,42 @@ class _InvitarScreenState extends State<InvitarScreen> {
               ),
               CampoEtiquetado(
                 etiqueta: 'Rol en $granja *',
-                child: DropdownButtonFormField<RolMiembro>(
-                  initialValue: _rol,
-                  decoration: decoracionCampo(),
-                  items: [
+                // 4. Rol como dos opciones visibles.
+                child: Row(
+                  children: [
                     for (final rol in [RolMiembro.veterinario, RolMiembro.trabajador])
-                      DropdownMenuItem(value: rol, child: Text(rol.etiqueta)),
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: rol == RolMiembro.veterinario ? 8 : 0),
+                          child: Material(
+                            color: _rol == rol ? colorVerdeSuave : colorSuperficie,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(radioCampo),
+                              side: BorderSide(
+                                color: _rol == rol ? colorVerde : colorBorde,
+                                width: _rol == rol ? 1.5 : 1,
+                              ),
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(radioCampo),
+                              onTap: () => setState(() => _rol = rol),
+                              child: SizedBox(
+                                height: 52,
+                                child: Center(
+                                  child: Text(
+                                    rol.etiqueta,
+                                    style: TextStyle(
+                                      fontWeight: _rol == rol ? FontWeight.w600 : FontWeight.w400,
+                                      color: _rol == rol ? colorVerde : colorTextoSuave,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
-                  onChanged: (rol) => setState(() => _rol = rol ?? _rol),
                 ),
               ),
             ],
@@ -100,7 +140,6 @@ class _InvitarScreenState extends State<InvitarScreen> {
           texto: 'Recibirá un correo con los pasos. Si ya tiene cuenta, podrá aceptarla con esa misma cuenta. No se envían códigos.',
         ),
         BotonPrincipal(texto: _enviando ? 'Enviando...' : 'Enviar invitación', alPresionar: _enviando ? null : _enviar),
-        BotonSecundario(texto: 'Volver', alPresionar: volver),
       ],
     );
   }
