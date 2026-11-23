@@ -30,7 +30,6 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
     HistorialClinico(animalId: animal.id),
     HistorialCuidados(animal: animal),
     HistorialTratamientos(animal: animal),
-    HistorialPrevenciones(animal: animal),
   ];
 
   // 3. Abre editar o dar de baja y vuelve a leer la ficha.

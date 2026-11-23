@@ -75,7 +75,6 @@ class DatosVistaPrevia {
     Fichas.instance.usarApi(
       'https://vista-previa.invalid',
       cliente,
-      token: () => 'demo',
     );
     // ignore: invalid_use_of_visible_for_testing_member
     Clinica.instance.usarApi(
