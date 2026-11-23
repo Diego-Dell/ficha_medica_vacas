@@ -13,6 +13,11 @@ class Indicacion {
     required this.tipo,
     required this.dosis,
     required this.unidad,
+    this.via,
+    this.frecuencia,
+    this.duracion,
+    this.inicio,
+    this.retiro,
   });
 
   final String id;
@@ -21,6 +26,8 @@ class Indicacion {
   final String tipo;
   final double? dosis;
   final String? unidad;
+  final String? via, frecuencia, duracion, retiro;
+  final DateTime? inicio;
 
   bool get esTratamiento => tipo == 'Tratamiento';
 }
@@ -176,7 +183,9 @@ class Cuidados {
       for (final valor in tratamientos)
         if (valor is Map<String, dynamic> &&
             activos.contains(valor['fichaBovinaId']) &&
-            valor['anulado'] != true)
+            valor['anulado'] != true &&
+            valor['fechaFin'] == null &&
+            _vigente(valor['inicio']))
           Indicacion(
             id: valor['id'] as String,
             animalId: valor['fichaBovinaId'] as String,
@@ -184,11 +193,17 @@ class Cuidados {
             tipo: 'Tratamiento',
             dosis: (valor['dosis'] as num?)?.toDouble(),
             unidad: valor['unidad'] as String?,
+            via: valor['viaAdministracion'] as String?,
+            frecuencia: valor['frecuencia'] as String?,
+            duracion: valor['duracion'] as String?,
+            inicio: DateTime.tryParse('${valor['inicio']}'),
+            retiro: valor['periodoRetiro'] as String?,
           ),
       for (final valor in prevenciones)
         if (valor is Map<String, dynamic> &&
             activos.contains(valor['fichaBovinaId']) &&
-            valor['estado'] == 'Pendiente')
+            valor['estado'] == 'Pendiente' &&
+            valor['tipo'] != 'Control')
           Indicacion(
             id: valor['id'] as String,
             animalId: valor['fichaBovinaId'] as String,
@@ -287,4 +302,9 @@ class Cuidados {
       },
     );
   }
+
+  static bool _vigente(dynamic inicio) =>
+      inicio == null ||
+      DateTime.tryParse('$inicio') == null ||
+      !DateTime.parse('$inicio').isAfter(DateTime.now());
 }

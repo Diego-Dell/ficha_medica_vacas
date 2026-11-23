@@ -1,0 +1,14 @@
+{
+  "name": "tratamiento-prevencion-pruebas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tratamientos_prevencion.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.17"
+  },
+  "dependencies": {
+    "@electric-sql/pglite-socket": "^0.2.20"
+  }
+}

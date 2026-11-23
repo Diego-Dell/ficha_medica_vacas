@@ -6,6 +6,7 @@ import '../../models/animal.dart';
 import '../../models/miembro.dart';
 import '../../widgets/vetlink.dart';
 import '../../widgets/historial_cuidados.dart';
+import '../../widgets/historial_tratamientos.dart';
 import '../inicio_por_rol.dart';
 import 'dar_de_baja_screen.dart';
 import '../../widgets/historial_clinico.dart';
@@ -28,6 +29,8 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
   List<Widget> _registros(Animal animal) => [
     HistorialClinico(animalId: animal.id),
     HistorialCuidados(animal: animal),
+    HistorialTratamientos(animal: animal),
+    HistorialPrevenciones(animal: animal),
   ];
 
   // 3. Abre editar o dar de baja y vuelve a leer la ficha.
