@@ -18,7 +18,7 @@ class Tratamientos {
 
   String _apiUrl = const String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://10.0.2.2:5080',
+    defaultValue: 'https://vetlink-api.onrender.com',
   );
   http.Client _clienteHttp = http.Client();
   String? Function()? _token;
