@@ -63,6 +63,31 @@ class AplicacionCuidado {
       );
 }
 
+// Observación y cuidado realizado por el trabajador.
+class ObservacionCuidado {
+  const ObservacionCuidado({
+    required this.id,
+    required this.animalId,
+    required this.fecha,
+    required this.observado,
+    required this.cuidado,
+  });
+
+  final String id;
+  final String animalId;
+  final DateTime fecha;
+  final String observado;
+  final String cuidado;
+
+  factory ObservacionCuidado.desdeApi(Map<String, dynamic> dato) => ObservacionCuidado(
+        id: dato['id'] as String,
+        animalId: dato['fichaBovinaId'] as String,
+        fecha: DateTime.parse(dato['fechaHora'] as String),
+        observado: dato['observado'] as String,
+        cuidado: dato['cuidadoRealizado'] as String,
+      );
+}
+
 class ErrorCuidados implements Exception {
   const ErrorCuidados(this.mensaje);
   final String mensaje;
@@ -122,11 +147,6 @@ class Cuidados {
         if (respuesta.statusCode == 403) {
           throw const ErrorCuidados(
             'Tu rol no permite registrar este cuidado.',
-          );
-        }
-        if (respuesta.statusCode == 404 && ruta == 'observacionescuidados') {
-          throw const ErrorCuidados(
-            'La API todavía no permite guardar observaciones. El equipo debe agregar esta ruta.',
           );
         }
         final texto = utf8.decode(respuesta.bodyBytes);
@@ -193,11 +213,11 @@ class Cuidados {
             tipo: 'Tratamiento',
             dosis: (valor['dosis'] as num?)?.toDouble(),
             unidad: valor['unidad'] as String?,
-            via: valor['viaAdministracion'] as String?,
+            via: (valor['via'] ?? valor['viaAdministracion']) as String?,
             frecuencia: valor['frecuencia'] as String?,
             duracion: valor['duracion'] as String?,
             inicio: DateTime.tryParse('${valor['inicio']}'),
-            retiro: valor['periodoRetiro'] as String?,
+            retiro: (valor['retiro'] ?? valor['periodoRetiro']) as String?,
           ),
       for (final valor in prevenciones)
         if (valor is Map<String, dynamic> &&
@@ -216,7 +236,7 @@ class Cuidados {
   }
 
   Future<List<AplicacionCuidado>> aplicacionesDe(Animal animal) async {
-    final datos = await _pedir('GET', 'aplicaciones') as List<dynamic>;
+    final datos = await _pedir('GET', 'aplicaciones?fichaBovinaId=${animal.id}') as List<dynamic>;
     return [
       for (final d in datos)
         if (d is Map<String, dynamic> &&
@@ -289,7 +309,6 @@ class Cuidados {
         'La fecha de observación no puede estar en el futuro.',
       );
     }
-    // Pendiente en la API publicada: esta ruta debe implementarse en el backend compartido.
     await _pedir(
       'POST',
       'observacionescuidados',
@@ -299,6 +318,69 @@ class Cuidados {
         'fechaHora': fecha.toUtc().toIso8601String(),
         'observado': observado.trim(),
         'cuidadoRealizado': cuidado.trim(),
+      },
+    );
+  }
+
+  Future<List<ObservacionCuidado>> observacionesDe(Animal animal) async {
+    final datos = await _pedir('GET', 'observacionescuidados?fichaBovinaId=${animal.id}') as List<dynamic>;
+    return [
+      for (final d in datos)
+        if (d is Map<String, dynamic> && d['fichaBovinaId'] == animal.id && d['anulado'] != true)
+          ObservacionCuidado.desdeApi(d),
+    ];
+  }
+
+  // Una corrección conserva el dato anterior y el motivo en la base.
+  Future<void> corregirAplicacion({
+    required AplicacionCuidado aplicacion,
+    required double dosis,
+    required String unidad,
+    String? observacion,
+    required String motivo,
+  }) async {
+    if (!dosis.isFinite || dosis <= 0) {
+      throw const ErrorCuidados('La dosis debe ser positiva.');
+    }
+    if (unidad.trim().isEmpty) {
+      throw const ErrorCuidados('Ingresá la unidad de la dosis.');
+    }
+    if (motivo.trim().length < 3) {
+      throw const ErrorCuidados('Indicá el motivo de la corrección.');
+    }
+    await _pedir(
+      'PUT',
+      'aplicaciones/${aplicacion.id}',
+      cuerpo: {
+        'fechaHoraReal': aplicacion.fecha.toUtc().toIso8601String(),
+        'dosis': dosis,
+        'unidad': unidad.trim(),
+        'observacion': observacion?.trim(),
+        'motivo': motivo.trim(),
+      },
+    );
+  }
+
+  Future<void> corregirObservacion({
+    required ObservacionCuidado observacion,
+    required String observado,
+    required String cuidado,
+    required String motivo,
+  }) async {
+    if (observado.trim().isEmpty || cuidado.trim().isEmpty) {
+      throw const ErrorCuidados('Completá lo observado y el cuidado realizado.');
+    }
+    if (motivo.trim().length < 3) {
+      throw const ErrorCuidados('Indicá el motivo de la corrección.');
+    }
+    await _pedir(
+      'PUT',
+      'observacionescuidados/${observacion.id}',
+      cuerpo: {
+        'fechaHora': observacion.fecha.toUtc().toIso8601String(),
+        'observado': observado.trim(),
+        'cuidadoRealizado': cuidado.trim(),
+        'motivo': motivo.trim(),
       },
     );
   }
