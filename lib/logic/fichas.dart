@@ -107,7 +107,7 @@ class Fichas {
       {Map<String, String>? consulta, Map<String, dynamic>? cuerpo}) async {
     final direccion = Uri.parse('$_api/api/fichasbovinas$ruta').replace(queryParameters: consulta);
     final pedido = http.Request(metodo, direccion)
-      ..headers['Authorization'] = 'Bearer ${_db.auth.currentSession?.accessToken ?? ''}'
+      ..headers['Authorization'] = 'Bearer ${_cliente?.auth.currentSession?.accessToken ?? ''}'
       ..headers['Content-Type'] = 'application/json';
     if (cuerpo != null) pedido.body = jsonEncode(cuerpo);
     // 7. El plan gratuito de Render tarda en despertar; se le da hasta un minuto.
