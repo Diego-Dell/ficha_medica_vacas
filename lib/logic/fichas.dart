@@ -68,8 +68,8 @@ class Fichas {
 
   // 5. Se edita por id, así los registros siguen vinculados.
   Future<String?> actualizar(Animal animal) async {
-    if (Granjas.instance.rol == RolMiembro.veterinario) return 'El veterinario solo puede editar la etapa';
-    if (Granjas.instance.rol == RolMiembro.trabajador) {
+    if (!Granjas.instance.sesionAdministradora && Granjas.instance.rol == RolMiembro.veterinario) return 'El veterinario solo puede editar la etapa';
+    if (!Granjas.instance.sesionAdministradora && Granjas.instance.rol == RolMiembro.trabajador) {
       try {
         final actual = await porId(animal.id);
         if (actual.etapa != animal.etapa) return 'El trabajador no puede cambiar la etapa';
@@ -82,7 +82,7 @@ class Fichas {
   }
 
   Future<String?> actualizarEtapa(Animal animal, Etapa etapa) {
-    if (animal.deBaja || Granjas.instance.rol == RolMiembro.trabajador) {
+    if (animal.deBaja || (!Granjas.instance.sesionAdministradora && Granjas.instance.rol == RolMiembro.trabajador)) {
       return Future.value('Solo el dueño o veterinario pueden cambiar la etapa de una ficha activa');
     }
     return _guardar(

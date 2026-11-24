@@ -38,11 +38,21 @@ class Granjas {
     rol = vinculo.rol;
   }
 
+  void seleccionarAdministracion(Granja granja) {
+    if (!sesionAdministradora || !granja.confirmada || granja.rechazada) {
+      throw StateError(
+        'Se necesita una granja confirmada y una cuenta administradora',
+      );
+    }
+    _actual = granja;
+  }
+
   bool esActual(Granja granja) => _actual?.id == granja.id;
 
   /// Consulta la función existente: solo reconoce administradores con cuenta activa.
   String? _cuentaAdministradora;
-  bool get sesionAdministradora => Sesion.instance.id != null && _cuentaAdministradora == Sesion.instance.id;
+  bool get sesionAdministradora =>
+      Sesion.instance.id != null && _cuentaAdministradora == Sesion.instance.id;
 
   Future<bool> esAdministrador() async {
     final administrador = await _db.rpc('es_administrador') == true;
@@ -66,7 +76,10 @@ class Granjas {
     return [
       for (final fila in filas)
         (
-          granja: Granja.fromMap(fila['granjas'] as Map<String, dynamic>, dueno: Sesion.instance.nombre),
+          granja: Granja.fromMap(
+            fila['granjas'] as Map<String, dynamic>,
+            dueno: Sesion.instance.nombre,
+          ),
           rol: RolMiembro.values.byName(fila['rol'] as String),
         ),
     ];
@@ -125,22 +138,38 @@ class Granjas {
   Future<String?> registrarGranja(Granja granja) async {
     try {
       final archivo = await Documentos.local(granja.documento);
-      if (!await archivo.exists()) return 'Adjuntá el PDF para completar el registro';
+      if (!await archivo.exists()) {
+        return 'Adjuntá el PDF para completar el registro';
+      }
       final bytes = await archivo.readAsBytes();
       final tipo = Documentos.tipo(Documentos.nombre(granja.documento), bytes);
       final clave = granja.documento.split('/')[1];
-      final id = '${clave.substring(0, 8)}-${clave.substring(8, 12)}-${clave.substring(12, 16)}-${clave.substring(16, 20)}-${clave.substring(20)}';
-      final ruta = '${Sesion.instance.id}/$id/${Documentos.nombre(granja.documento)}';
+      final id =
+          '${clave.substring(0, 8)}-${clave.substring(8, 12)}-${clave.substring(12, 16)}-${clave.substring(16, 20)}-${clave.substring(20)}';
+      final ruta =
+          '${Sesion.instance.id}/$id/${Documentos.nombre(granja.documento)}';
       // Primero el PDF; si falla, no se crea ninguna granja.
-      await _db.storage.from(Documentos.bucket).uploadBinary(ruta, bytes,
-        fileOptions: FileOptions(contentType: tipo, upsert: true));
-      await _db.rpc('registrar_granja', params: {
-        'p_nombre': granja.nombre,
-        'p_hectareas': granja.superficie,
-        'p_runsa': granja.runsa,
-        'p_documentos': 'storage/$ruta',
-      });
-      try { await archivo.delete(); } on Exception { /* El PDF ya está guardado. */ }
+      await _db.storage
+          .from(Documentos.bucket)
+          .uploadBinary(
+            ruta,
+            bytes,
+            fileOptions: FileOptions(contentType: tipo, upsert: true),
+          );
+      await _db.rpc(
+        'registrar_granja',
+        params: {
+          'p_nombre': granja.nombre,
+          'p_hectareas': granja.superficie,
+          'p_runsa': granja.runsa,
+          'p_documentos': 'storage/$ruta',
+        },
+      );
+      try {
+        await archivo.delete();
+      } on Exception {
+        /* El PDF ya está guardado. */
+      }
       return null;
     } on FormatException catch (e) {
       return e.message;
@@ -152,39 +181,56 @@ class Granjas {
   }
 
   /// 9. Guarda la invitación y envía el correo; devuelve el error de la invitación o el motivo por el que no salió el correo.
-  Future<({String? error, String? errorCorreo})> invitar(String correo, RolMiembro rol) async {
+  Future<({String? error, String? errorCorreo})> invitar(
+    String correo,
+    RolMiembro rol,
+  ) async {
     final limpio = correo.trim().toLowerCase();
     try {
       final equipo = await miembros();
       if (equipo.any((m) => m.correo.toLowerCase() == limpio)) {
-        return (error: 'Esa persona ya es miembro de la granja', errorCorreo: null);
+        return (
+          error: 'Esa persona ya es miembro de la granja',
+          errorCorreo: null,
+        );
       }
       final fila = await _db
           .from('invitaciones')
           .insert({'granja_id': actual.id, 'correo': limpio, 'rol': rol.name})
           .select('id')
           .single();
-      return (error: null, errorCorreo: await enviarCorreo(fila['id'] as String));
+      return (
+        error: null,
+        errorCorreo: await enviarCorreo(fila['id'] as String),
+      );
     } on PostgrestException catch (e) {
       final mensaje = e.code == '23505'
           ? 'Esa persona ya tiene una invitación pendiente'
           : 'No se pudo registrar la invitación';
       return (error: mensaje, errorCorreo: null);
     } on Exception {
-      return (error: 'No se pudo conectar. Revisa tu internet', errorCorreo: null);
+      return (
+        error: 'No se pudo conectar. Revisa tu internet',
+        errorCorreo: null,
+      );
     }
   }
 
   /// 10. Pide a la función de Supabase enviar el correo con Mailgun; devuelve null o el motivo que informa la función.
   Future<String?> enviarCorreo(String invitacionId) async {
     try {
-      await _db.functions.invoke('dynamic-action', body: {'invitacion_id': invitacionId});
+      await _db.functions.invoke(
+        'dynamic-action',
+        body: {'invitacion_id': invitacionId},
+      );
       return null;
     } on FunctionsFetchException {
       return 'No se pudo conectar. Revisa tu internet';
     } on FunctionException catch (e) {
       final detalle = e.details;
-      return detalle is Map && detalle['error'] is String ? detalle['error'] as String : 'No se pudo enviar el correo';
+      return detalle is Map && detalle['error'] is String
+          ? detalle['error'] as String
+          : 'No se pudo enviar el correo';
     } on Exception {
       return 'No se pudo enviar el correo';
     }
@@ -193,14 +239,21 @@ class Granjas {
   /// 11. Trae las invitaciones pendientes dirigidas al correo de la cuenta actual.
   Future<List<Invitacion>> misInvitaciones() async {
     final correo = (Sesion.instance.usuario ?? '').toLowerCase();
-    final filas = (await _db.rpc('mis_invitaciones') as List).cast<Map<String, dynamic>>();
-    return filas.map(Invitacion.fromMap).where((i) => i.correo.toLowerCase() == correo).toList();
+    final filas = (await _db.rpc('mis_invitaciones') as List)
+        .cast<Map<String, dynamic>>();
+    return filas
+        .map(Invitacion.fromMap)
+        .where((i) => i.correo.toLowerCase() == correo)
+        .toList();
   }
 
   /// 12. Acepta una invitación y vincula la cuenta a su granja; devuelve null o el mensaje de error.
   Future<String?> aceptarInvitacion(Invitacion invitacion) async {
     try {
-      await _db.rpc('aceptar_invitacion', params: {'p_invitacion': invitacion.id});
+      await _db.rpc(
+        'aceptar_invitacion',
+        params: {'p_invitacion': invitacion.id},
+      );
       return null;
     } on PostgrestException {
       return 'La invitación ya no está vigente';
@@ -216,15 +269,20 @@ class Granjas {
         .select('*, vinculaciones(rol, cuentas(nombre, identificador))')
         .eq('confirmada', false)
         .order('nombre');
-    return [for (final fila in filas)
-      if (fila['motivo_rechazo'] == null) Granja.fromMap(fila, dueno: _duenoDe(fila)),
+    return [
+      for (final fila in filas)
+        if (fila['motivo_rechazo'] == null)
+          Granja.fromMap(fila, dueno: _duenoDe(fila)),
     ];
   }
 
   /// 13.1. Escribe el nombre y el correo del dueño; si la base no lo muestra, lo avisa.
   String _duenoDe(Map<String, dynamic> fila) {
-    final vinculos = (fila['vinculaciones'] as List<dynamic>? ?? const []).cast<Map<String, dynamic>>();
-    final cuenta = vinculos.where((v) => v['rol'] == 'dueno').firstOrNull?['cuentas'] as Map<String, dynamic>?;
+    final vinculos = (fila['vinculaciones'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+    final cuenta =
+        vinculos.where((v) => v['rol'] == 'dueno').firstOrNull?['cuentas']
+            as Map<String, dynamic>?;
     if (cuenta == null) return 'No disponible';
     final correo = cuenta['identificador'] as String;
     final nombre = cuenta['nombre'] as String?;
@@ -258,18 +316,34 @@ class Granjas {
       return 'No se pudo conectar. Revisa tu internet';
     }
   }
+
   /// Sube el archivo privado y después guarda su ruta en la solicitud.
   Future<String?> subirDocumento(Granja granja, String pendiente) async {
     try {
       final archivo = await Documentos.local(pendiente);
-      if (!await archivo.exists()) return 'Seleccioná el documento desde este teléfono para completar la solicitud';
+      if (!await archivo.exists()) {
+        return 'Seleccioná el documento desde este teléfono para completar la solicitud';
+      }
       final bytes = await archivo.readAsBytes();
       final tipo = Documentos.tipo(Documentos.nombre(pendiente), bytes);
-      final ruta = '${Sesion.instance.id}/${granja.id}/${pendiente.substring(10)}';
-      await _db.storage.from(Documentos.bucket).uploadBinary(ruta, bytes,
-        fileOptions: FileOptions(contentType: tipo, upsert: true));
-      await _db.rpc('adjuntar_documento_granja', params: {'p_granja': granja.id, 'p_ruta': ruta});
-      try { await archivo.delete(); } on Exception { /* La copia remota ya está guardada. */ }
+      final ruta =
+          '${Sesion.instance.id}/${granja.id}/${pendiente.substring(10)}';
+      await _db.storage
+          .from(Documentos.bucket)
+          .uploadBinary(
+            ruta,
+            bytes,
+            fileOptions: FileOptions(contentType: tipo, upsert: true),
+          );
+      await _db.rpc(
+        'adjuntar_documento_granja',
+        params: {'p_granja': granja.id, 'p_ruta': ruta},
+      );
+      try {
+        await archivo.delete();
+      } on Exception {
+        /* La copia remota ya está guardada. */
+      }
       return null;
     } on Exception {
       return 'La granja está registrada, pero falta subir el documento. Reintentá desde Granja en revisión';
@@ -280,11 +354,16 @@ class Granjas {
     String? pendiente;
     try {
       for (final vinculo in await misVinculos()) {
-        if (vinculo.rol != RolMiembro.dueno || vinculo.granja.confirmada || vinculo.granja.rechazada ||
+        if (vinculo.rol != RolMiembro.dueno ||
+            vinculo.granja.confirmada ||
+            vinculo.granja.rechazada ||
             !vinculo.granja.documento.startsWith('pendiente/')) {
           continue;
         }
-        final error = await subirDocumento(vinculo.granja, vinculo.granja.documento);
+        final error = await subirDocumento(
+          vinculo.granja,
+          vinculo.granja.documento,
+        );
         pendiente ??= error;
       }
       return pendiente;
@@ -294,15 +373,23 @@ class Granjas {
   }
 
   Future<String> enlaceDocumento(Granja granja) {
-    if (!Documentos.subido(granja.documento)) throw const FormatException('El dueño todavía no subió el archivo');
-    return _db.storage.from(Documentos.bucket).createSignedUrl(granja.documento.substring(8), 300);
+    if (!Documentos.subido(granja.documento)) {
+      throw const FormatException('El dueño todavía no subió el archivo');
+    }
+    return _db.storage
+        .from(Documentos.bucket)
+        .createSignedUrl(granja.documento.substring(8), 300);
   }
 
   /// 12. Actualiza el RUNSA de la granja actual; solo el dueño puede hacerlo.
   Future<String?> actualizarRunsa(String runsa) async {
     final limpio = runsa.trim().toUpperCase();
     try {
-      final filas = await _db.from('granjas').update({'runsa': limpio}).eq('id', actual.id).select('id');
+      final filas = await _db
+          .from('granjas')
+          .update({'runsa': limpio})
+          .eq('id', actual.id)
+          .select('id');
       if (filas.isEmpty) return 'Tu rol no permite este cambio';
       _actual = actual.conRunsa(limpio);
       return null;

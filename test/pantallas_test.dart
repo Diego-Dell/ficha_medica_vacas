@@ -11,7 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ficha_medica_vacas/logic/sesion.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
-import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
+import 'package:ficha_medica_vacas/screens/administrador/solicitudes_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/granja_revision_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/invitar_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
@@ -316,14 +316,13 @@ void main() {
     simularDatos({
       'granjas': [santaRosa],
     }, pedidos: pedidos);
-    await abrir(tester, const AdministracionScreen());
-    expect(find.text('granja por confirmar'), findsOneWidget);
+    await abrir(tester, const SolicitudesGranjaScreen());
+    expect(find.text('1 granja por confirmar'), findsOneWidget);
     expect(find.text('Mis granjas'), findsNothing);
     final lista = pedidos.singleWhere((p) => p.url.pathSegments.last == 'granjas');
     expect(lista.url.queryParameters['confirmada'], 'eq.false');
     expect(lista.url.queryParameters['select'], contains('vinculaciones'));
 
-    await tocar(tester, 'Santa Rosa');
     expect(find.text('Dueño: Ana Pérez · ana@ejemplo.com\nRUNSA: SC-02418'), findsOneWidget);
     await tocar(tester, 'Santa Rosa · Pendiente');
     expect(find.text('Confirmar granja'), findsOneWidget);
@@ -346,9 +345,8 @@ void main() {
         {...santaRosa, 'vinculaciones': const <Object>[]},
       ],
     }, errorAlGuardar: '42501');
-    await abrir(tester, const AdministracionScreen());
-    await tocar(tester, 'Santa Rosa');
-    expect(find.text('Dueño: No disponible\nRUNSA: SC-02418'), findsOneWidget);
+    await abrir(tester, const SolicitudesGranjaScreen());
+
     await tocar(tester, 'Santa Rosa · Pendiente');
     await tocar(tester, 'Confirmar registro');
     expect(find.text('No se pudo confirmar la granja'), findsOneWidget);
@@ -359,14 +357,13 @@ void main() {
 
     simularDatos(const {}, sinRed: true);
     await abrir(tester, const SizedBox());
-    await abrir(tester, const AdministracionScreen());
+    await abrir(tester, const SolicitudesGranjaScreen());
     await tester.pump(const Duration(minutes: 1));
     await tester.pumpAndSettle();
     simularDatos({
       'granjas': [santaRosa],
     });
     await tocar(tester, 'No se pudieron cargar las granjas. Reintentar');
-    await tocar(tester, 'Santa Rosa');
     expect(find.text('Santa Rosa · Pendiente'), findsOneWidget);
   });
 

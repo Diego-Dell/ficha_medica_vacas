@@ -72,6 +72,14 @@ class Clinica {
     on TimeoutException { return 'La respuesta tardó demasiado. Revisá los antecedentes antes de volver a guardar'; }
     on Exception { return 'No se confirmó el guardado. Revisá tu conexión y los antecedentes antes de reintentar'; }
   }
+
+  Future<String?> corregir(RegistroClinico registro, Map<String, dynamic> datos) async {
+    try {
+      await _pedir('PUT', '${registro.reproductivo ? '/eventosreproductivos' : '/atencionesclinicas'}/${registro.id}', datos);
+      return null;
+    } on FalloClinica catch (e) { return e.mensaje; }
+    on Exception { return 'No se confirmó la corrección. Actualizá los antecedentes antes de reintentar'; }
+  }
 }
 
 class FalloClinica implements Exception {

@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ficha_medica_vacas/logic/fichas.dart';
+import 'package:ficha_medica_vacas/logic/administracion.dart';
 import 'package:ficha_medica_vacas/logic/granjas.dart';
 import 'package:ficha_medica_vacas/models/granja.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
@@ -109,6 +110,21 @@ void simularDatos(
     }),
   );
   Granjas.instance.cliente = cliente;
+  Administracion.instance.usarCliente(MockClient((pedido) async {
+    pedidos?.add(pedido);
+    final granjas = (tablas['granjas'] as List? ?? []).cast<Map>();
+    if (sinRed) throw http.ClientException('sin red');
+    Object datos = [];
+    if (pedido.url.path.endsWith('/resumen')) {
+      datos = {'pendientes': granjas.where((g) => g['confirmada'] == false).length,
+        'granjasActivas': granjas.where((g) => g['confirmada'] == true).length, 'cuentas': 0};
+    } else if (pedido.url.path.endsWith('/granjas')) {
+      datos = [for (final g in granjas) if (g['motivo_rechazo'] == null) {
+        ...g, 'documentosTerreno': g['documentos_terreno'],
+      }];
+    }
+    return http.Response(jsonEncode(datos), 200, headers: {'content-type': 'application/json'});
+  }), token: () => 'sesion-simulada');
   Fichas.instance.cliente = cliente;
 }
 

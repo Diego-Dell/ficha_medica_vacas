@@ -22,7 +22,7 @@ class _TratamientosPrevencionScreenState
   @override
   Widget build(BuildContext context) => PantallaVetLink(
     titulo: 'Tratamientos y prevención',
-    subtitulo: Granjas.instance.rol == RolMiembro.veterinario
+    subtitulo: Granjas.instance.sesionAdministradora || Granjas.instance.rol == RolMiembro.veterinario
         ? 'Indicá tratamientos y programá los cuidados preventivos.'
         : 'Consultá las indicaciones y los controles del animal.',
     encabezado: EncabezadoVetLink(

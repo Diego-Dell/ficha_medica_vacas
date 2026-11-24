@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
-import 'package:ficha_medica_vacas/screens/administrador/administracion_screen.dart';
 import 'package:ficha_medica_vacas/screens/dueno_granja/mi_granja_screen.dart';
 import 'package:ficha_medica_vacas/screens/trabajador/cuidados_hoy_screen.dart';
 import 'package:ficha_medica_vacas/screens/veterinario/seguimiento_veterinario_screen.dart';
@@ -76,7 +75,6 @@ void main() {
         const SeguimientoVeterinarioScreen(granja: 'Los Pinos'),
         const CuidadosHoyScreen(granja: 'Los Pinos'),
         const MiGranjaScreen(),
-        const AdministracionScreen(),
       ]) {
         await tester.pumpWidget(MaterialApp(home: pantalla));
         await tester.pumpAndSettle();

@@ -27,8 +27,8 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
   DateTime? _nacimiento;
   bool _estimado = false;
   bool _enviando = false;
-  bool get _soloEtapa => _animal != null && Granjas.instance.rol == RolMiembro.veterinario;
-  bool get _puedeCambiarEtapa => _animal == null || Granjas.instance.rol != RolMiembro.trabajador;
+  bool get _soloEtapa => _animal != null && !Granjas.instance.sesionAdministradora && Granjas.instance.rol == RolMiembro.veterinario;
+  bool get _puedeCambiarEtapa => Granjas.instance.sesionAdministradora || _animal == null || Granjas.instance.rol != RolMiembro.trabajador;
 
   @override
   void initState() {

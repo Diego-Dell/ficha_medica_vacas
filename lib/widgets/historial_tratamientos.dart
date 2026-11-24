@@ -74,7 +74,7 @@ class _HistorialTratamientosState extends State<HistorialTratamientos> {
   @override
   Widget build(BuildContext context) {
     final editar =
-        !widget.animal.deBaja && Granjas.instance.rol == RolMiembro.veterinario;
+        !widget.animal.deBaja && (Granjas.instance.sesionAdministradora || Granjas.instance.rol == RolMiembro.veterinario);
     final tema = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

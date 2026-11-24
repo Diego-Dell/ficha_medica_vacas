@@ -75,7 +75,7 @@ class _GanadoScreenState extends State<GanadoScreen> {
   Widget build(BuildContext context) {
     final tema = Theme.of(context).textTheme;
     // 5. El veterinario consulta; dueño y trabajador también crean fichas.
-    final puedeCrear = Granjas.instance.rol != RolMiembro.veterinario;
+    final puedeCrear = Granjas.instance.sesionAdministradora || Granjas.instance.rol != RolMiembro.veterinario;
 
     return PantallaVetLink(
       encabezado: EncabezadoVetLink(

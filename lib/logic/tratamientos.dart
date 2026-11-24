@@ -60,7 +60,7 @@ class Tratamientos {
 
   String? _permiso(Animal animal) => animal.deBaja
       ? 'La ficha está dada de baja y no admite nuevos registros'
-      : Granjas.instance.rol != RolMiembro.veterinario
+      : !Granjas.instance.sesionAdministradora && Granjas.instance.rol != RolMiembro.veterinario
       ? 'Solo el veterinario puede indicar tratamientos y prevención'
       : null;
 

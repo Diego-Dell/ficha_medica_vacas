@@ -50,7 +50,7 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
     final a = _animal;
     final rol = Granjas.instance.rol;
     final puedeEditar = !a.deBaja;
-    final puedeDarDeBaja = !a.deBaja && rol == RolMiembro.dueno;
+    final puedeDarDeBaja = !a.deBaja && (Granjas.instance.sesionAdministradora || rol == RolMiembro.dueno);
 
     Widget dato(String etiqueta, String valor) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 5),
@@ -98,7 +98,7 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
           Row(
             children: [
               if (puedeEditar)
-                Expanded(child: BotonSecundario(texto: rol == RolMiembro.veterinario ? 'Editar etapa' : 'Editar ficha', alPresionar: () => _abrir(EditarFichaScreen(animal: a)))),
+                Expanded(child: BotonSecundario(texto: !Granjas.instance.sesionAdministradora && rol == RolMiembro.veterinario ? 'Editar etapa' : 'Editar ficha', alPresionar: () => _abrir(EditarFichaScreen(animal: a)))),
               if (puedeEditar && puedeDarDeBaja) const SizedBox(width: 12),
               if (puedeDarDeBaja)
                 Expanded(

@@ -330,8 +330,8 @@ void main() {
     expect(find.byType(AdministracionScreen), findsOneWidget);
     expect(find.byType(MiGranjaScreen), findsNothing);
     expect(find.text('Tu cuenta todavía no tiene una granja'), findsNothing);
-    expect(pedidos.map((p) => p.url.pathSegments.last), ['es_administrador', 'granjas']);
-    expect(find.text('granja por confirmar'), findsOneWidget);
+    expect(pedidos.map((p) => p.url.pathSegments.last), ['es_administrador', 'resumen', 'granjas', 'cuentas']);
+    expect(find.text('Por confirmar'), findsNWidgets(2));
   });
 
   testWidgets('si no se puede verificar el rol no abre ningún panel', (tester) async {
