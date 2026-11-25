@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../logic/sincronizacion.dart';
 import '../../logic/clinica.dart';
 import '../../logic/fichas.dart';
 import '../../logic/granjas.dart';
@@ -256,6 +257,7 @@ class _RegistroClinicoScreenState extends State<RegistroClinicoScreen> {
         ? await Clinica.instance.registrar(
             reproductivo: widget.reproductivo,
             datos: datos,
+            animal: animal.arete,
           )
         : await Clinica.instance.corregir(widget.registro!, datos);
     if (!mounted) return;
@@ -264,7 +266,10 @@ class _RegistroClinicoScreenState extends State<RegistroClinicoScreen> {
       avisar(context, error);
       return;
     }
-    await mostrarRegistroGuardado(context);
+    await mostrarRegistroGuardado(
+      context,
+      estado: widget.registro == null ? Sincronizacion.instance.ultimoEstado : null,
+    );
     if (mounted) Navigator.pop(context, true);
   }
 

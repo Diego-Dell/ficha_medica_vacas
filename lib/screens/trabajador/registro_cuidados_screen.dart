@@ -72,7 +72,7 @@ class _ObservacionScreenState extends State<ObservacionScreen> {
     }
     setState(() => _guardando = true);
     try {
-      await Cuidados.instance.registrarObservacion(
+      final estado = await Cuidados.instance.registrarObservacion(
         animal: _animal!,
         cuentaId: cuentaId,
         fecha: _fecha,
@@ -82,7 +82,7 @@ class _ObservacionScreenState extends State<ObservacionScreen> {
       if (!mounted) {
         return;
       }
-      await mostrarRegistroGuardado(context);
+      await mostrarRegistroGuardado(context, estado: estado);
       if (mounted) {
         Navigator.pop(context, true);
       }
@@ -254,7 +254,7 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
     }
     setState(() => _guardando = true);
     try {
-      await Cuidados.instance.registrarAplicacion(
+      final estado = await Cuidados.instance.registrarAplicacion(
         animal: _animal!,
         indicacion: _indicacion!,
         cuentaId: cuentaId,
@@ -266,7 +266,7 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
       if (!mounted) {
         return;
       }
-      await mostrarRegistroGuardado(context);
+      await mostrarRegistroGuardado(context, estado: estado);
       if (mounted) {
         Navigator.pop(context, true);
       }
