@@ -11,6 +11,7 @@ import 'fichas.dart';
 import 'clinica.dart';
 import 'tratamientos.dart';
 import 'granjas.dart';
+import 'sincronizacion.dart';
 import 'documentos.dart';
 
 /// 1. Comparte una sola sesión en toda la app (Singleton) y esconde los detalles de Supabase Auth detrás de métodos simples (Facade).
@@ -83,6 +84,8 @@ class Sesion {
     Fichas.instance.conectar(Supabase.instance.client);
     Clinica.instance.conectar(Supabase.instance.client);
     Tratamientos.instance.conectar(Supabase.instance.client);
+    // RF-07: abre la base local y sincroniza pendientes al recuperar conexión.
+    unawaited(Sincronizacion.instance.iniciar(Supabase.instance.client));
 
     // 3.2. Escucha los enlaces con token_hash; el que abrió la app llega antes de escuchar, así que se pide aparte.
     final enlaces = AppLinks();

@@ -39,6 +39,10 @@ dependencies:
   supabase_flutter: ^2.18.3
   url_launcher: ^6.3.3
   flutter_svg: ^2.5.0
+  sqflite: ^2.4.6
+  path: ^1.9.1
+  connectivity_plus: ^7.3.2
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:

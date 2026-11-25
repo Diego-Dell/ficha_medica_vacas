@@ -31,6 +31,7 @@ class Granjas {
   /// 3. Recuerda la granja con la que trabaja la persona en esta sesión y su rol en ella.
   Granja? _actual;
   Granja get actual => _actual!;
+  Granja? get seleccionada => _actual;
   RolMiembro rol = RolMiembro.trabajador;
 
   void seleccionar(Vinculo vinculo) {

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/animal.dart';
 import '../models/miembro.dart';
+import 'sincronizacion.dart';
 import 'granjas.dart';
 
 // 1. Acceso único a las fichas del ganado (Singleton + Facade).
@@ -41,8 +42,11 @@ class Fichas {
   // 3. Fichas de la granja actual, con o sin las dadas de baja.
   Future<List<Animal>> deLaGranja({bool conBajas = false}) async {
     if (_conApi) {
-      final respuesta = await _pedir('GET', '', consulta: {'granjaId': Granjas.instance.actual.id});
-      final animales = [for (final fila in jsonDecode(respuesta.body) as List) Animal.desdeApi(fila as Map<String, dynamic>)];
+      // RF-07: con red guarda la lista en el celular; sin red usa la última copia.
+      final granja = Granjas.instance.actual.id;
+      final filas = await Sincronizacion.instance.leer('fichas/$granja',
+          () async => jsonDecode((await _pedir('GET', '', consulta: {'granjaId': granja})).body)) as List;
+      final animales = [for (final fila in filas) Animal.desdeApi(fila as Map<String, dynamic>)];
       return conBajas ? animales : animales.where((a) => !a.deBaja).toList();
     }
     var consulta = _db.from('fichas_bovinas').select().eq('granja_id', Granjas.instance.actual.id);
@@ -55,7 +59,10 @@ class Fichas {
   Future<List<Animal>> activos() => deLaGranja();
 
   Future<Animal> porId(String id) async {
-    if (_conApi) return Animal.desdeApi(jsonDecode((await _pedir('GET', '/$id')).body) as Map<String, dynamic>);
+    if (_conApi) {
+      return Animal.desdeApi(await Sincronizacion.instance.leer('ficha/$id',
+          () async => jsonDecode((await _pedir('GET', '/$id')).body)) as Map<String, dynamic>);
+    }
     return Animal.fromMap(await _db.from('fichas_bovinas').select().eq('id', id).single());
   }
 

@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/animal.dart';
+import 'granjas.dart';
+import 'sincronizacion.dart';
 
 class Indicacion {
   const Indicacion({
@@ -118,6 +120,7 @@ class Cuidados {
     String metodo,
     String ruta, {
     Map<String, dynamic>? cuerpo,
+    bool crudo = false,
   }) async {
     if (_api.isEmpty) {
       throw const ErrorCuidados(
@@ -171,10 +174,42 @@ class Cuidados {
           : jsonDecode(utf8.decode(respuesta.bodyBytes));
     } on ErrorCuidados {
       rethrow;
-    } on Exception {
+    } on Exception catch (error) {
+      // 1. RF-07: sin red el fallo sigue tal cual para guardar en el celular o leer la copia local.
+      if (crudo && Sincronizacion.sinConexion(error)) rethrow;
       throw const ErrorCuidados(
         'No se pudo conectar con la API. Revisá internet e intentá de nuevo.',
       );
+    }
+  }
+
+  // 2. Lecturas con copia local para consultar sin conexión lo ya descargado.
+  Future<dynamic> _leer(String ruta) async {
+    try {
+      return await Sincronizacion.instance.leer('cuidados/$ruta', () => _pedir('GET', ruta, crudo: true));
+    } on ErrorCuidados {
+      rethrow;
+    } on Exception {
+      throw const ErrorCuidados('Sin conexión y sin datos guardados en el celular para esta consulta.');
+    }
+  }
+
+  // 3. RF-07: guarda en el celular y envía; sin conexión queda pendiente.
+  Future<EstadoRegistro> _registrar(String tipo, String ruta, Animal animal, Map<String, dynamic> cuerpo) async {
+    try {
+      return await Sincronizacion.instance.guardar(
+        tipo: tipo,
+        ruta: '/api/$ruta',
+        cuerpo: cuerpo,
+        granjaId: Granjas.instance.seleccionada?.id ?? '',
+        animalId: animal.id,
+        descripcion: '$tipo · ${animal.arete}',
+        enviar: (datos) => _pedir('POST', ruta, cuerpo: datos, crudo: true),
+      );
+    } on ErrorCuidados {
+      rethrow;
+    } on Exception {
+      throw const ErrorCuidados('No se pudo conectar con la API. Revisá internet e intentá de nuevo.');
     }
   }
 
@@ -194,8 +229,8 @@ class Cuidados {
       return [];
     }
     final resultados = await Future.wait([
-      _pedir('GET', 'tratamientos'),
-      _pedir('GET', 'prevenciones'),
+      _leer('tratamientos'),
+      _leer('prevenciones'),
     ]);
     final tratamientos = resultados[0] as List<dynamic>;
     final prevenciones = resultados[1] as List<dynamic>;
@@ -236,7 +271,7 @@ class Cuidados {
   }
 
   Future<List<AplicacionCuidado>> aplicacionesDe(Animal animal) async {
-    final datos = await _pedir('GET', 'aplicaciones?fichaBovinaId=${animal.id}') as List<dynamic>;
+    final datos = await _leer('aplicaciones?fichaBovinaId=${animal.id}') as List<dynamic>;
     return [
       for (final d in datos)
         if (d is Map<String, dynamic> &&
@@ -246,7 +281,7 @@ class Cuidados {
     ];
   }
 
-  Future<void> registrarAplicacion({
+  Future<EstadoRegistro> registrarAplicacion({
     required Animal animal,
     required Indicacion indicacion,
     required String cuentaId,
@@ -271,10 +306,7 @@ class Cuidados {
         'La fecha de aplicación no puede estar en el futuro.',
       );
     }
-    await _pedir(
-      'POST',
-      'aplicaciones',
-      cuerpo: {
+    return _registrar('Aplicación', 'aplicaciones', animal, {
         'fichaBovinaId': animal.id,
         'cuentaTrabajadorId': cuentaId,
         'tratamientoId': indicacion.esTratamiento ? indicacion.id : null,
@@ -287,7 +319,7 @@ class Cuidados {
     );
   }
 
-  Future<void> registrarObservacion({
+  Future<EstadoRegistro> registrarObservacion({
     required Animal animal,
     required String cuentaId,
     required DateTime fecha,
@@ -309,10 +341,7 @@ class Cuidados {
         'La fecha de observación no puede estar en el futuro.',
       );
     }
-    await _pedir(
-      'POST',
-      'observacionescuidados',
-      cuerpo: {
+    return _registrar('Observación', 'observacionescuidados', animal, {
         'fichaBovinaId': animal.id,
         'cuentaTrabajadorId': cuentaId,
         'fechaHora': fecha.toUtc().toIso8601String(),
@@ -323,7 +352,7 @@ class Cuidados {
   }
 
   Future<List<ObservacionCuidado>> observacionesDe(Animal animal) async {
-    final datos = await _pedir('GET', 'observacionescuidados?fichaBovinaId=${animal.id}') as List<dynamic>;
+    final datos = await _leer('observacionescuidados?fichaBovinaId=${animal.id}') as List<dynamic>;
     return [
       for (final d in datos)
         if (d is Map<String, dynamic> && d['fichaBovinaId'] == animal.id && d['anulado'] != true)
