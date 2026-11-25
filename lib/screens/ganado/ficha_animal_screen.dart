@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../logic/fichas.dart';
+import '../../logic/clinica.dart';
+import '../../logic/consulta_ganado.dart';
 import '../../logic/granjas.dart';
 import '../../models/animal.dart';
 import '../../models/miembro.dart';
@@ -24,6 +26,13 @@ class FichaAnimalScreen extends StatefulWidget {
 
 class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
   late Animal _animal = widget.animal;
+  late Future<ValoracionAnimal> _valoracion = _cargarValoracion();
+
+  Future<ValoracionAnimal> _cargarValoracion() async {
+    final eventos = await Clinica.instance.valoracionesDeAnimales([_animal]);
+    return valoracionesPorAnimal([_animal], eventos)[_animal.id] ??
+        const ValoracionAnimal();
+  }
 
   // Historial clínico y aplicaciones registradas para el animal.
   List<Widget> _registros(Animal animal) => [
@@ -38,7 +47,12 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
     if (cambio != true || !mounted) return;
     try {
       final actual = await Fichas.instance.porId(_animal.id);
-      if (mounted) setState(() => _animal = actual);
+      if (mounted) {
+        setState(() {
+          _animal = actual;
+          _valoracion = _cargarValoracion();
+        });
+      }
     } on Exception {
       if (mounted) avisar(context, 'No se pudo actualizar la ficha');
     }
@@ -133,6 +147,40 @@ class _FichaAnimalScreenState extends State<FichaAnimalScreen> {
               ],
             ],
           ),
+        ),
+        const SizedBox(height: 16),
+        FutureBuilder<ValoracionAnimal>(
+          future: _valoracion,
+          builder: (context, estado) {
+            if (estado.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (estado.hasError) {
+              return TextButton(
+                onPressed: () => setState(() => _valoracion = _cargarValoracion()),
+                child: const Text('No se pudo cargar la valoración. Reintentar'),
+              );
+            }
+            final valoracion = estado.data!;
+            return Tarjeta(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Valoración reproductiva', style: tema.titleMedium),
+                  dato('Aptitud', valoracion.aptitudTexto),
+                  dato('Fecha de aptitud', valoracion.aptitud == null
+                      ? 'Sin valorar' : fechaCorta(valoracion.aptitud!.fecha)),
+                  dato('Preñez', valoracion.prenezTexto),
+                  dato('Fecha de preñez', valoracion.prenez == null
+                      ? 'Sin valorar' : fechaCorta(valoracion.prenez!.fecha)),
+                  TextButton(
+                    onPressed: () => setState(() => _valoracion = _cargarValoracion()),
+                    child: const Text('Actualizar valoración'),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
         ..._registros(a),

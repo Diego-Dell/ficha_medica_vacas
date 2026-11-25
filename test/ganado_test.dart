@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'package:ficha_medica_vacas/screens/trabajador/cuidados_hoy_screen.dart';
+import 'package:ficha_medica_vacas/logic/clinica.dart';
 import 'package:ficha_medica_vacas/models/animal.dart';
 import 'package:ficha_medica_vacas/models/miembro.dart';
 import 'package:ficha_medica_vacas/screens/ganado/dar_de_baja_screen.dart';
@@ -98,7 +100,12 @@ void main() {
     simularDatos({
       'fichas_bovinas': [lucera, rosa, vendida],
     });
+    Clinica.instance.usarApi('https://ejemplo.test',
+        MockClient((_) async => http.Response('[]', 200)),
+        token: () => 'token-prueba', autor: () => 'vet1');
   });
+
+  tearDown(() => Clinica.instance.usarApi('', http.Client()));
 
   testWidgets('Ganado lista también las bajas y filtra por texto y etapa', (tester) async {
     final pedidos = <http.BaseRequest>[];
@@ -110,7 +117,7 @@ void main() {
     expect(find.text('Lucera · 0842'), findsOneWidget);
     expect(find.text('Vaca · Holstein'), findsNWidgets(2));
     expect(find.text('De baja'), findsOneWidget);
-    expect(find.text('2 animales · 1 de baja'), findsOneWidget);
+    expect(find.text('3 coincidencias · 2 activas · 1 de baja'), findsOneWidget);
     final consulta = pedidos.single.url.queryParameters;
     expect(consulta['granja_id'], 'eq.g1');
     expect(consulta.containsKey('fecha_baja'), isFalse);
