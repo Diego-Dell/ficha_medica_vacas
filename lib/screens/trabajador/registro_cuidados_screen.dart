@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../logic/cuidados.dart';
+import '../../logic/dosis.dart';
 import '../../logic/granjas.dart';
 import '../../logic/sesion.dart';
 import '../../models/animal.dart';
 import '../../widgets/selector_animal.dart';
+import '../../widgets/campos_indicacion.dart';
 import '../../widgets/vetlink.dart';
 import '../ganado/registro_guardado.dart';
 
@@ -127,7 +129,7 @@ class _ObservacionScreenState extends State<ObservacionScreen> {
                 maxLines: 4,
                 maxLength: 1000,
                 decoration: decoracionCampo(pista: '¿Qué viste en el animal?'),
-                validator: requerido,
+                validator: textoEntre(3, 1000),
               ),
             ),
             CampoEtiquetado(
@@ -138,7 +140,7 @@ class _ObservacionScreenState extends State<ObservacionScreen> {
                 maxLines: 4,
                 maxLength: 1000,
                 decoration: decoracionCampo(pista: '¿Qué hiciste?'),
-                validator: requerido,
+                validator: textoEntre(3, 1000),
               ),
             ),
             const AvisoVetLink(
@@ -205,7 +207,7 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
   void _elegirIndicacion(Indicacion? indicacion) {
     setState(() {
       _indicacion = indicacion;
-      _dosis.text = indicacion?.dosis?.toString() ?? '';
+      _dosis.text = indicacion?.dosis == null ? '' : numeroCorto(indicacion!.dosis!);
       _unidad.text = indicacion?.unidad ?? '';
     });
   }
@@ -346,56 +348,35 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
                 );
               },
             ),
-            if (_indicacion != null && (_indicacion!.via != null || _indicacion!.retiro?.isNotEmpty == true))
-              AvisoVetLink(
-                titulo: 'Instrucciones veterinarias',
-                texto: [
-                  if (_indicacion!.via != null) 'Vía: ${_indicacion!.via}',
-                  if (_indicacion!.frecuencia != null) 'Frecuencia: ${_indicacion!.frecuencia}',
-                  if (_indicacion!.duracion != null) 'Duración: ${_indicacion!.duracion}',
-                  if (_indicacion!.retiro?.isNotEmpty == true) 'Retiro: ${_indicacion!.retiro}',
-                ].join('\n'),
-              ),
+            // Datos del tratamiento cargados por el veterinario; el trabajador no los modifica.
+            if (_indicacion != null) _DatosIndicacion(indicacion: _indicacion!),
             CampoEtiquetado(
               etiqueta: 'Fecha y hora de aplicación *',
               child: _CampoFecha(fecha: _fecha, alPresionar: _elegirFecha),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: CampoEtiquetado(
-                    etiqueta: 'Dosis *',
-                    child: TextFormField(
-                      controller: _dosis,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+            // Solo si la indicación no trae dosis (prevenciones antiguas) se escribe a mano.
+            if (_indicacion != null && _indicacion!.dosis == null)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: CampoEtiquetado(
+                      etiqueta: 'Dosis *',
+                      child: TextFormField(
+                        controller: _dosis,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: decoracionCampo(pista: '0'),
+                        validator: (texto) {
+                          final valor = double.tryParse((texto ?? '').trim().replaceAll(',', '.'));
+                          return valor == null || !valor.isFinite || valor <= 0 ? 'Dosis positiva' : null;
+                        },
                       ),
-                      decoration: decoracionCampo(pista: '0.0'),
-                      validator: (texto) {
-                        final valor = double.tryParse(
-                          (texto ?? '').trim().replaceAll(',', '.'),
-                        );
-                        return valor == null || !valor.isFinite || valor <= 0
-                            ? 'Dosis positiva'
-                            : null;
-                      },
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: CampoEtiquetado(
-                    etiqueta: 'Unidad *',
-                    child: TextFormField(
-                      controller: _unidad,
-                      maxLength: 30,
-                      decoration: decoracionCampo(pista: 'mL, mg…'),
-                      validator: requerido,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  Expanded(child: SelectorUnidad(controlador: _unidad)),
+                ],
+              ),
             CampoEtiquetado(
               etiqueta: 'Observaciones',
               child: TextFormField(
@@ -409,8 +390,12 @@ class _AplicacionScreenState extends State<AplicacionScreen> {
               ),
             ),
             BotonPrincipal(
-              texto: _guardando ? 'Registrando…' : 'Registrar aplicación',
-              alPresionar: _guardando ? null : _guardar,
+              texto: _guardando
+                  ? 'Registrando…'
+                  : _indicacion?.total != null && !_indicacion!.completa
+                  ? 'Registrar aplicación ${_indicacion!.aplicadas + 1} de ${_indicacion!.total}'
+                  : 'Registrar aplicación',
+              alPresionar: _guardando || (_indicacion?.completa ?? false) ? null : _guardar,
             ),
           ],
         ),
@@ -435,4 +420,70 @@ class _CampoFecha extends StatelessWidget {
       ),
     ),
   );
+}
+
+// Datos fijos de la indicación y contador de aplicaciones.
+class _DatosIndicacion extends StatelessWidget {
+  const _DatosIndicacion({required this.indicacion});
+  final Indicacion indicacion;
+
+  @override
+  Widget build(BuildContext context) {
+    final i = indicacion;
+    final tema = Theme.of(context).textTheme;
+    final total = i.total;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Tarjeta(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(i.nombre, style: tema.titleMedium)),
+                ChipEstado(i.contador, tipo: i.completa ? TipoChip.neutro : TipoChip.exito),
+              ],
+            ),
+            if (total != null) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (i.aplicadas / total).clamp(0, 1).toDouble(),
+                  minHeight: 8,
+                  backgroundColor: colorVerdeSuave,
+                  color: colorVerde,
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            for (final (etiqueta, valor) in [
+              ('Dosis', i.dosis == null ? null : '${numeroCorto(i.dosis!)} ${i.unidad ?? ''}'),
+              ('Vía', i.via),
+              ('Cada', i.frecuencia),
+              ('Duración', i.duracion),
+              ('Retiro', i.retiro),
+            ])
+              if (valor != null && valor.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      const Icono('candado', tam: 14, color: colorTextoSuave),
+                      const SizedBox(width: 6),
+                      Text('$etiqueta: ', style: tema.bodySmall),
+                      Expanded(child: Text(valor, style: tema.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
+                    ],
+                  ),
+                ),
+            if (i.completa)
+              const Padding(
+                padding: EdgeInsets.only(top: 10),
+                child: AvisoVetLink(titulo: 'Esta indicación ya tiene todas sus aplicaciones.', advertencia: true),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
