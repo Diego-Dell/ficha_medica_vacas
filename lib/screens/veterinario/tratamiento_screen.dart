@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../logic/clinica.dart';
 import '../../logic/granjas.dart';
+import '../../logic/sincronizacion.dart';
 import '../../logic/tratamientos.dart';
 import '../../models/animal.dart';
 import '../../models/registro_clinico.dart';
@@ -182,7 +183,10 @@ class _TratamientoScreenState extends State<TratamientoScreen> {
       avisar(context, error);
       return;
     }
-    await mostrarRegistroGuardado(context);
+    await mostrarRegistroGuardado(
+      context,
+      estado: widget.anterior == null ? Sincronizacion.instance.ultimoEstado : null,
+    );
     if (mounted) Navigator.pop(context, true);
   }
 

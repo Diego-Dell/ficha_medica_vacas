@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../logic/granjas.dart';
+import '../../logic/sincronizacion.dart';
 import '../../logic/tratamientos.dart';
 import '../../models/animal.dart';
 import '../../models/prevencion.dart';
@@ -55,7 +56,10 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
       avisar(context, error);
       return;
     }
-    await mostrarRegistroGuardado(context);
+    await mostrarRegistroGuardado(
+      context,
+      estado: widget.control == null ? Sincronizacion.instance.ultimoEstado : null,
+    );
     if (mounted) Navigator.pop(context, true);
   }
 

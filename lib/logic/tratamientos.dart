@@ -9,6 +9,7 @@ import '../models/prevencion.dart';
 import '../models/registro_clinico.dart';
 import '../models/tratamiento.dart';
 import 'granjas.dart';
+import 'sincronizacion.dart';
 
 // Singleton + Facade. Supabase provee la sesión; los datos viajan únicamente
 // por la API HTTP, que es quien aplica las reglas en PostgreSQL.
@@ -35,11 +36,12 @@ class Tratamientos {
   }
 
   Future<List<Tratamiento>> delAnimal(String animalId) async {
-    final respuesta = await _pedir(
+    final respuesta = await _leer('tratamientos/$animalId', () => _pedir(
       'GET',
       '/api/tratamientos',
       consulta: {'fichaBovinaId': animalId},
-    );
+      crudo: true,
+    ));
     return (respuesta as List)
         .cast<Map>()
         .map((fila) => Tratamiento.fromMap(Map<String, dynamic>.from(fila)))
@@ -47,11 +49,12 @@ class Tratamientos {
   }
 
   Future<List<Prevencion>> prevencionesDelAnimal(String animalId) async {
-    final respuesta = await _pedir(
+    final respuesta = await _leer('prevenciones/$animalId', () => _pedir(
       'GET',
       '/api/prevenciones',
       consulta: {'fichaBovinaId': animalId},
-    );
+      crudo: true,
+    ));
     return (respuesta as List)
         .cast<Map>()
         .map((fila) => Prevencion.fromMap(Map<String, dynamic>.from(fila)))
@@ -62,12 +65,23 @@ class Tratamientos {
   Future<List<Prevencion>> prevencionesDeAnimales(List<Animal> animales) async {
     if (animales.isEmpty) return [];
     final ids = animales.map((a) => a.id).toSet();
-    final respuesta = await _pedir('GET', '/api/prevenciones');
+    final respuesta = await _leer('prevenciones', () => _pedir('GET', '/api/prevenciones', crudo: true));
     return (respuesta as List)
         .cast<Map>()
         .map((fila) => Prevencion.fromMap(Map<String, dynamic>.from(fila)))
         .where((p) => ids.contains(p.animalId))
         .toList();
+  }
+
+  // RF-07: con red guarda lo descargado; sin red usa la última copia del celular.
+  Future<dynamic> _leer(String clave, Future<dynamic> Function() remoto) async {
+    try {
+      return await Sincronizacion.instance.leer('tratamientos/$clave', remoto);
+    } on FalloTratamientos {
+      rethrow;
+    } catch (_) {
+      throw const FalloTratamientos('Sin conexión y sin datos guardados en el celular para esta consulta.');
+    }
   }
 
   String? _permiso(Animal animal) => animal.deBaja
@@ -121,16 +135,34 @@ class Tratamientos {
       },
     };
     try {
-      await _pedir(
-        'POST',
-        anterior == null
-            ? '/api/tratamientos'
-            : '/api/tratamientos/${anterior.id}/reemplazar',
-        cuerpo: datos,
-      );
+      if (anterior == null) {
+        // RF-07: una indicación nueva se guarda en el celular y se envía al haber conexión.
+        await _guardarLocal('Tratamiento', '/api/tratamientos', animal, datos);
+      } else {
+        // El reemplazo usa la versión vista; si cambió, la API lo rechaza para revisarlo.
+        await _pedir('POST', '/api/tratamientos/${anterior.id}/reemplazar', cuerpo: datos);
+      }
       return null;
     } on FalloTratamientos catch (e) {
       return e.mensaje;
+    }
+  }
+
+  Future<void> _guardarLocal(String tipo, String ruta, Animal animal, Map<String, dynamic> datos) async {
+    try {
+      await Sincronizacion.instance.guardar(
+        tipo: tipo,
+        ruta: ruta,
+        cuerpo: datos,
+        granjaId: Granjas.instance.seleccionada?.id ?? '',
+        animalId: animal.id,
+        descripcion: '$tipo · ${animal.arete}',
+        enviar: (cuerpo) => _pedir('POST', ruta, cuerpo: cuerpo, crudo: true),
+      );
+    } on FalloTratamientos {
+      rethrow;
+    } catch (_) {
+      throw const FalloTratamientos('No se pudo conectar con la API. Revisá la URL y tu conexión.');
     }
   }
 
@@ -197,16 +229,12 @@ class Tratamientos {
       return 'La fecha programada no puede ser anterior a hoy';
     }
     try {
-      await _pedir(
-        'POST',
-        '/api/prevenciones',
-        cuerpo: {
-          'fichaBovinaId': animal.id,
-          'tipo': tipo,
-          'nombre': nombre.trim(),
-          'fechaProgramada': fechaApi(fecha),
-        },
-      );
+      await _guardarLocal('Prevención', '/api/prevenciones', animal, {
+        'fichaBovinaId': animal.id,
+        'tipo': tipo,
+        'nombre': nombre.trim(),
+        'fechaProgramada': fechaApi(fecha),
+      });
       return null;
     } on FalloTratamientos catch (e) {
       return e.mensaje;
@@ -248,6 +276,7 @@ class Tratamientos {
     String ruta, {
     Map<String, String>? consulta,
     Map<String, dynamic>? cuerpo,
+    bool crudo = false,
   }) async {
     final token = _token?.call();
     if (token == null || token.isEmpty) {
@@ -265,7 +294,7 @@ class Tratamientos {
     if (cuerpo != null) pedido.body = jsonEncode(cuerpo);
     try {
       final respuesta = await http.Response.fromStream(
-        await _clienteHttp.send(pedido),
+        await _clienteHttp.send(pedido).timeout(const Duration(seconds: 60)),
       );
       if (respuesta.statusCode < 200 || respuesta.statusCode >= 300) {
         throw FalloTratamientos(_mensajeRespuesta(respuesta));
@@ -274,7 +303,9 @@ class Tratamientos {
       return jsonDecode(respuesta.body);
     } on FalloTratamientos {
       rethrow;
-    } catch (_) {
+    } catch (error) {
+      // RF-07: sin red el fallo sigue tal cual para guardar en el celular o leer la copia local.
+      if (crudo && Sincronizacion.sinConexion(error)) rethrow;
       throw const FalloTratamientos(
         'No se pudo conectar con la API. Revisá la URL y tu conexión.',
       );
