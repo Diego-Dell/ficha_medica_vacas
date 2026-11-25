@@ -19,12 +19,15 @@ class RegistroClinico {
         aptitud = datos['aptitud'] as String?,
         prenez = datos['prenez'] as String?,
         proximoControl = datos['proximoControl'] as String?,
-        partoProbable = datos['partoProbable'] as String?;
+        partoProbable = datos['partoProbable'] as String?,
+        version = (datos['version'] as num?)?.toInt();
 
   final String id, animalId, autorId, tipo, detalle;
   final DateTime fecha;
   final bool reproductivo, anulado;
   final String? aptitud, prenez, proximoControl, partoProbable;
+  // RF-07: versión vista; la API rechaza la corrección si cambió mientras tanto.
+  final int? version;
 
   String get titulo => reproductivo
       ? {'Valoracion': 'Valoración reproductiva', 'Parto': 'Parto', 'Perdida': 'Pérdida'}[tipo] ?? tipo

@@ -45,6 +45,7 @@ class Clinica {
       final estado = respuesta.statusCode;
       throw FalloClinica(estado == 401 ? 'Tu sesión venció. Volvé a iniciar sesión'
           : estado == 403 ? 'Tu rol no permite esta operación'
+          : estado == 409 ? 'El registro cambió mientras lo corregías. Actualizá los antecedentes y revisá la versión actual antes de volver a guardar'
           : estado == 400 ? 'La API rechazó los datos. Revisá los campos y que tu cuenta sea veterinaria de esta granja. Si elegiste Evolución, verificá que el backend esté actualizado.'
           : 'No se pudo completar la operación. Consultá los antecedentes antes de volver a guardar');
     }
@@ -101,7 +102,8 @@ class Clinica {
 
   Future<String?> corregir(RegistroClinico registro, Map<String, dynamic> datos) async {
     try {
-      await _pedir('PUT', '${registro.reproductivo ? '/eventosreproductivos' : '/atencionesclinicas'}/${registro.id}', datos);
+      await _pedir('PUT', '${registro.reproductivo ? '/eventosreproductivos' : '/atencionesclinicas'}/${registro.id}',
+          {...datos, if (registro.version != null) 'version': registro.version});
       return null;
     } on FalloClinica catch (e) { return e.mensaje; }
     on Exception { return 'No se confirmó la corrección. Actualizá los antecedentes antes de reintentar'; }

@@ -43,11 +43,14 @@ class AplicacionCuidado {
     required this.dosis,
     required this.unidad,
     this.observacion,
+    this.version,
   });
 
   final String id;
   final String animalId;
   final String indicacionId;
+  // RF-07: versión vista para detectar cambios concurrentes al corregir.
+  final int? version;
   final DateTime fecha;
   final double dosis;
   final String unidad;
@@ -62,6 +65,7 @@ class AplicacionCuidado {
         dosis: (dato['dosis'] as num).toDouble(),
         unidad: dato['unidad'] as String,
         observacion: dato['observacion'] as String?,
+        version: (dato['version'] as num?)?.toInt(),
       );
 }
 
@@ -73,7 +77,10 @@ class ObservacionCuidado {
     required this.fecha,
     required this.observado,
     required this.cuidado,
+    this.version,
   });
+
+  final int? version;
 
   final String id;
   final String animalId;
@@ -87,6 +94,7 @@ class ObservacionCuidado {
         fecha: DateTime.parse(dato['fechaHora'] as String),
         observado: dato['observado'] as String,
         cuidado: dato['cuidadoRealizado'] as String,
+        version: (dato['version'] as num?)?.toInt(),
       );
 }
 
@@ -386,6 +394,7 @@ class Cuidados {
         'unidad': unidad.trim(),
         'observacion': observacion?.trim(),
         'motivo': motivo.trim(),
+        if (aplicacion.version != null) 'version': aplicacion.version,
       },
     );
   }
@@ -410,6 +419,7 @@ class Cuidados {
         'observado': observado.trim(),
         'cuidadoRealizado': cuidado.trim(),
         'motivo': motivo.trim(),
+        if (observacion.version != null) 'version': observacion.version,
       },
     );
   }
