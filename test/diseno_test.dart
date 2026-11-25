@@ -17,14 +17,14 @@ void main() {
       expect(find.text('VetLink'), findsOneWidget);
       expect(find.text('Bienvenido a VetLink'), findsOneWidget);
       expect(find.text('Iniciar sesión'), findsOneWidget);
-      expect(find.text('Registrar mi granja'), findsOneWidget);
+      expect(find.text('Registrar granja y cuenta'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       // 2. Las pantallas internas comparten botón de volver y posición del título.
       Offset? volver, titulo;
       for (final pantalla in <(Widget, String)>[
         (const RecuperarScreen(), 'Recuperar contraseña'),
-        (const RegistrarGranjaScreen(), 'Registrar mi granja'),
+        (const RegistrarGranjaScreen(), 'Registrar granja y cuenta'),
       ]) {
         await tester.pumpWidget(MaterialApp(home: pantalla.$1));
         await tester.pumpAndSettle();

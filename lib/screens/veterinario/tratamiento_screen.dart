@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../logic/clinica.dart';
+import '../../logic/dosis.dart';
 import '../../logic/granjas.dart';
 import '../../logic/sincronizacion.dart';
 import '../../logic/tratamientos.dart';
@@ -52,8 +53,9 @@ class _TratamientoScreenState extends State<TratamientoScreen> {
       _dosis.text = '${anterior.dosis}';
       _unidad.text = anterior.unidad;
       _via.text = anterior.via;
-      _frecuencia.text = anterior.frecuencia;
-      _duracion.text = anterior.duracion;
+      // Cada y Duración se editan como números (horas y días).
+      _frecuencia.text = '${numeroDe(anterior.frecuencia) ?? ''}';
+      _duracion.text = '${numeroDe(anterior.duracion) ?? ''}';
       _retiro.text = anterior.retiro ?? '';
     }
     if (widget.animal != null) _elegir(widget.animal!);
@@ -107,10 +109,16 @@ class _TratamientoScreenState extends State<TratamientoScreen> {
         _atencion = lista.where((a) => a.id == anterior.atencionId).firstOrNull;
       }
       if (lista.isEmpty || (anterior != null && _atencion == null)) {
-        return const AvisoVetLink(
-          titulo: 'No hay una atención clínica vigente para esta indicación.',
-          texto: 'Necesitás una atención clínica registrada para este animal.',
-          advertencia: true,
+        // F8: si la atención quedó guardada sin conexión, se avisa que falta sincronizarla.
+        return FutureBuilder<int>(
+          future: Sincronizacion.instance.atencionesSinEnviar(_animal!.id),
+          builder: (context, pendientes) => AvisoVetLink(
+            titulo: 'No hay una atención clínica vigente para esta indicación.',
+            texto: (pendientes.data ?? 0) > 0
+                ? 'Hay una atención de este animal guardada en el celular. Sincronizala desde Perfil › Sincronización y volvé a intentar.'
+                : 'Necesitás una atención clínica registrada para este animal.',
+            advertencia: true,
+          ),
         );
       }
       return CampoEtiquetado(
@@ -171,9 +179,9 @@ class _TratamientoScreenState extends State<TratamientoScreen> {
               dosis: double.parse(_dosis.text.trim().replaceAll(',', '.')),
               unidad: _unidad.text,
               via: _via.text,
-              frecuencia: _frecuencia.text,
+              frecuencia: textoCada(int.parse(_frecuencia.text)),
               inicio: _inicio,
-              duracion: _duracion.text,
+              duracion: textoDuracion(int.parse(_duracion.text)),
               retiro: _retiro.text,
             ),
           );
@@ -268,31 +276,47 @@ class _TratamientoScreenState extends State<TratamientoScreen> {
                           : null;
                     },
                   ),
-                  TextoIndicacion(
-                    etiqueta: 'Unidad *',
-                    controlador: _unidad,
-                    maximo: 30,
-                    pista: 'Ej. mL, mg',
-                  ),
+                  SelectorUnidad(controlador: _unidad),
                   TextoIndicacion(
                     etiqueta: 'Vía de administración *',
                     controlador: _via,
                     maximo: 60,
                   ),
-                  TextoIndicacion(
-                    etiqueta: 'Frecuencia *',
+                  EnteroIndicacion(
+                    etiqueta: 'Cada *',
                     controlador: _frecuencia,
-                    pista: 'Ej. cada 12 horas',
+                    sufijo: 'horas',
+                    maximo: 720,
                   ),
                   FechaIndicacion(
                     etiqueta: 'Inicio *',
                     fecha: _inicio,
                     alCambiar: (v) => setState(() => _inicio = v),
                   ),
-                  TextoIndicacion(
+                  EnteroIndicacion(
                     etiqueta: 'Duración *',
                     controlador: _duracion,
-                    pista: 'Ej. 5 días',
+                    sufijo: 'días',
+                    maximo: 365,
+                  ),
+                  // Total de dosis calculado; es el que verá el trabajador al aplicar.
+                  ListenableBuilder(
+                    listenable: Listenable.merge([_frecuencia, _duracion, _dosis, _unidad]),
+                    builder: (context, _) {
+                      final cada = int.tryParse(_frecuencia.text);
+                      final dias = int.tryParse(_duracion.text);
+                      final total = cada == null || dias == null
+                          ? null
+                          : totalDosis(textoCada(cada), textoDuracion(dias));
+                      return AvisoVetLink(
+                        titulo: total == null
+                            ? 'Total de dosis: completá Cada y Duración'
+                            : 'Total de dosis: $total',
+                        texto: total == null || _dosis.text.trim().isEmpty
+                            ? null
+                            : '${_dosis.text.trim()} ${_unidad.text} por aplicación',
+                      );
+                    },
                   ),
                   TextoIndicacion(
                     etiqueta: 'Retiro (si corresponde)',

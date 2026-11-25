@@ -1,3 +1,4 @@
+import '../logic/dosis.dart';
 import 'registro_clinico.dart';
 
 // La indicación original se conserva cuando se reemplaza o finaliza.
@@ -74,6 +75,9 @@ class IndicacionTratamiento {
     if (!dosis.isFinite || dosis < .001 || dosis > 9999999.999) {
       return 'Ingresá una dosis entre 0,001 y 9999999,999';
     }
+    if (unidadValida(unidad) == null) return 'Elegí una unidad de la lista';
+    if (!formatoCada(frecuencia)) return 'Indicá cada cuántas horas (por ejemplo 24)';
+    if (!formatoDuracion(duracion)) return 'Indicá la duración en días (por ejemplo 5)';
     if (unidad.trim().length > 30 ||
         via.trim().length > 60 ||
         frecuencia.trim().length > 100 ||

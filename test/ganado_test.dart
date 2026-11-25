@@ -113,7 +113,7 @@ void main() {
       'fichas_bovinas': [lucera, rosa, vendida],
     }, pedidos: pedidos);
     await abrir(tester, const GanadoScreen());
-    expect(find.text('Ganado'), findsOneWidget);
+    expect(find.text('Gestionar ganado'), findsOneWidget);
     expect(find.text('Lucera · 0842'), findsOneWidget);
     expect(find.text('Vaca · Holstein'), findsNWidgets(2));
     expect(find.text('De baja'), findsOneWidget);

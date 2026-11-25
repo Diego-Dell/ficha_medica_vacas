@@ -98,7 +98,7 @@ void main() {
       expect(find.text('Pendiente 1'), findsOneWidget);
       expect(find.text('Pendiente 2'), findsOneWidget);
       expect(find.text('Pendiente 3'), findsNothing);
-      expect(find.text('Cuentas y accesos'), findsNothing);
+      expect(find.text('Gestionar cuentas y accesos'), findsNothing);
       expect(find.byType(NavigationDestination), findsNWidgets(3));
       await tester.tap(find.text('Granjas').last);
       await tester.pumpAndSettle();

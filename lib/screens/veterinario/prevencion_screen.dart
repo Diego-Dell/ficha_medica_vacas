@@ -20,6 +20,8 @@ class PrevencionScreen extends StatefulWidget {
 
 class _PrevencionScreenState extends State<PrevencionScreen> {
   final _formulario = GlobalKey<FormState>(), _nombre = TextEditingController();
+  // F5: vacuna y desparasitación llevan dosis y unidad fijas para el trabajador.
+  final _dosis = TextEditingController(), _unidad = TextEditingController();
   late Animal? _animal = widget.animal;
   String _tipo = 'Vacuna';
   DateTime _fecha = DateUtils.dateOnly(DateTime.now());
@@ -28,6 +30,8 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
   @override
   void dispose() {
     _nombre.dispose();
+    _dosis.dispose();
+    _unidad.dispose();
     super.dispose();
   }
 
@@ -44,6 +48,8 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
             tipo: _tipo,
             nombre: _nombre.text,
             fecha: _fecha,
+            dosis: _tipo == 'Control' ? null : double.tryParse(_dosis.text.trim().replaceAll(',', '.')),
+            unidad: _tipo == 'Control' ? null : _unidad.text,
           )
         : await Tratamientos.instance.completarControl(
             animal: _animal!,
@@ -112,6 +118,26 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
                     controlador: _nombre,
                     maximo: 200,
                   ),
+                  if (_tipo != 'Control')
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextoIndicacion(
+                            etiqueta: 'Dosis *',
+                            controlador: _dosis,
+                            numerico: true,
+                            maximo: 20,
+                            validar: (v) {
+                              final d = double.tryParse((v ?? '').trim().replaceAll(',', '.'));
+                              return d == null || !d.isFinite || d <= 0 || d > 9999999.999 ? 'Dosis positiva' : null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: SelectorUnidad(controlador: _unidad)),
+                      ],
+                    ),
                 ] else ...[
                   Text(
                     widget.control!.nombre,

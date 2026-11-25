@@ -8,6 +8,7 @@ import '../models/miembro.dart';
 import '../models/prevencion.dart';
 import '../models/registro_clinico.dart';
 import '../models/tratamiento.dart';
+import 'dosis.dart';
 import 'granjas.dart';
 import 'sincronizacion.dart';
 
@@ -217,9 +218,16 @@ class Tratamientos {
     required String tipo,
     required String nombre,
     required DateTime fecha,
+    double? dosis,
+    String? unidad,
   }) async {
     final error = _permiso(animal);
     if (error != null) return error;
+    // F5: vacuna y desparasitación exigen dosis y unidad de la lista.
+    final conDosis = tipo != 'Control';
+    if (conDosis && (dosis == null || !dosis.isFinite || dosis <= 0 || unidadValida(unidad) == null)) {
+      return 'Indicá la dosis y la unidad de la prevención';
+    }
     if (!tiposPrevencion.containsKey(tipo) ||
         nombre.trim().isEmpty ||
         nombre.trim().length > 200) {
@@ -234,6 +242,8 @@ class Tratamientos {
         'tipo': tipo,
         'nombre': nombre.trim(),
         'fechaProgramada': fechaApi(fecha),
+        if (conDosis) 'dosis': dosis,
+        if (conDosis) 'unidad': unidadValida(unidad),
       });
       return null;
     } on FalloTratamientos catch (e) {

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../logic/dosis.dart';
 
 import 'vetlink.dart';
 
@@ -74,6 +77,55 @@ class TextoIndicacion extends StatelessWidget {
           : TextInputType.text,
       decoration: decoracionCampo(pista: pista).copyWith(counterText: ''),
       validator: validar ?? (obligatorio ? requerido : null),
+    ),
+  );
+}
+
+// 1. Unidad de la dosis elegida de una lista fija (F1).
+class SelectorUnidad extends StatelessWidget {
+  const SelectorUnidad({super.key, required this.controlador, this.etiqueta = 'Unidad *'});
+  final TextEditingController controlador;
+  final String etiqueta;
+
+  @override
+  Widget build(BuildContext context) => CampoEtiquetado(
+    etiqueta: etiqueta,
+    child: DropdownButtonFormField<String>(
+      initialValue: unidadValida(controlador.text),
+      isExpanded: true,
+      decoration: decoracionCampo(pista: 'Elegir'),
+      items: [for (final u in unidadesDosis) DropdownMenuItem(value: u, child: Text(u))],
+      onChanged: (u) => controlador.text = u ?? '',
+      validator: (u) => u == null ? 'Elegí la unidad' : null,
+    ),
+  );
+}
+
+// 2. Número entero en un rango, con sufijo (horas o días).
+class EnteroIndicacion extends StatelessWidget {
+  const EnteroIndicacion({
+    super.key,
+    required this.etiqueta,
+    required this.controlador,
+    required this.sufijo,
+    required this.maximo,
+  });
+  final String etiqueta, sufijo;
+  final TextEditingController controlador;
+  final int maximo;
+
+  @override
+  Widget build(BuildContext context) => CampoEtiquetado(
+    etiqueta: etiqueta,
+    child: TextFormField(
+      controller: controlador,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: decoracionCampo(pista: '0').copyWith(suffixText: sufijo),
+      validator: (v) {
+        final n = int.tryParse(v ?? '');
+        return n == null || n < 1 || n > maximo ? 'Entre 1 y $maximo' : null;
+      },
     ),
   );
 }

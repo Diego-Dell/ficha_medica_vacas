@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:flutter/material.dart' show DateUtils;
+
 import '../models/animal.dart';
+import 'dosis.dart';
 import 'granjas.dart';
 import 'sincronizacion.dart';
 
@@ -20,6 +23,8 @@ class Indicacion {
     this.duracion,
     this.inicio,
     this.retiro,
+    this.aplicadas = 0,
+    this.total,
   });
 
   final String id;
@@ -30,8 +35,13 @@ class Indicacion {
   final String? unidad;
   final String? via, frecuencia, duracion, retiro;
   final DateTime? inicio;
+  // Contador para el trabajador: aplicaciones registradas y total indicado.
+  final int aplicadas;
+  final int? total;
 
   bool get esTratamiento => tipo == 'Tratamiento';
+  bool get completa => total != null && aplicadas >= total!;
+  String get contador => 'Número de aplicaciones: $aplicadas/${total ?? '—'}';
 }
 
 class AplicacionCuidado {
@@ -239,9 +249,18 @@ class Cuidados {
     final resultados = await Future.wait([
       _leer('tratamientos'),
       _leer('prevenciones'),
+      _leer('aplicaciones'),
     ]);
     final tratamientos = resultados[0] as List<dynamic>;
     final prevenciones = resultados[1] as List<dynamic>;
+    // Aplicaciones vigentes por indicación, para el contador.
+    final aplicadas = <String, int>{};
+    for (final a in resultados[2] as List<dynamic>) {
+      if (a is Map<String, dynamic> && a['anulado'] != true) {
+        final id = (a['tratamientoId'] ?? a['prevencionId']) as String?;
+        if (id != null) aplicadas[id] = (aplicadas[id] ?? 0) + 1;
+      }
+    }
     return [
       for (final valor in tratamientos)
         if (valor is Map<String, dynamic> &&
@@ -261,6 +280,8 @@ class Cuidados {
             duracion: valor['duracion'] as String?,
             inicio: DateTime.tryParse('${valor['inicio']}'),
             retiro: (valor['retiro'] ?? valor['periodoRetiro']) as String?,
+            aplicadas: aplicadas[valor['id']] ?? 0,
+            total: totalDosis(valor['frecuencia'] as String?, valor['duracion'] as String?),
           ),
       for (final valor in prevenciones)
         if (valor is Map<String, dynamic> &&
@@ -272,8 +293,10 @@ class Cuidados {
             animalId: valor['fichaBovinaId'] as String,
             nombre: valor['nombre'] as String,
             tipo: 'Prevención',
-            dosis: null,
-            unidad: null,
+            dosis: (valor['dosis'] as num?)?.toDouble(),
+            unidad: valor['unidad'] as String?,
+            aplicadas: aplicadas[valor['id']] ?? 0,
+            total: 1,
           ),
     ];
   }
@@ -309,10 +332,20 @@ class Cuidados {
     if (unidad.trim().isEmpty) {
       throw const ErrorCuidados('Ingresá la unidad de la dosis.');
     }
+    // F2/F3: la dosis es la indicada y no se supera el total.
+    if (indicacion.dosis != null && (dosis != indicacion.dosis || unidad.trim() != (indicacion.unidad ?? '').trim())) {
+      throw const ErrorCuidados('La dosis debe ser la indicada por el veterinario.');
+    }
+    if (indicacion.completa) {
+      throw ErrorCuidados('Ya se registraron las ${indicacion.total} aplicaciones de esta indicación.');
+    }
     if (fecha.isAfter(DateTime.now().add(const Duration(minutes: 5)))) {
       throw const ErrorCuidados(
         'La fecha de aplicación no puede estar en el futuro.',
       );
+    }
+    if (indicacion.inicio != null && fecha.isBefore(DateUtils.dateOnly(indicacion.inicio!))) {
+      throw const ErrorCuidados('La aplicación no puede ser anterior al inicio del tratamiento.');
     }
     return _registrar('Aplicación', 'aplicaciones', animal, {
         'fichaBovinaId': animal.id,

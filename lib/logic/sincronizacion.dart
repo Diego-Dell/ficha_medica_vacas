@@ -293,11 +293,26 @@ class Sincronizacion {
         await almacen.guardar(pendiente);
       }
       ultimaSincronizacion = DateTime.now();
+      await _limpiar(almacen);
     } finally {
       _sincronizando = false;
       _avisar();
     }
   }
+
+  // F7: los sincronizados de más de 30 días se borran para que la base local no crezca sin límite.
+  Future<void> _limpiar(AlmacenLocal almacen) async {
+    final limite = DateTime.now().subtract(const Duration(days: 30));
+    for (final p in await almacen.todos()) {
+      if (p.estado == EstadoRegistro.sincronizado && (p.sincronizadoEn ?? p.creadoEn).isBefore(limite)) {
+        await almacen.borrar(p.id);
+      }
+    }
+  }
+
+  // F8: atenciones del animal que siguen en el celular sin sincronizar.
+  Future<int> atencionesSinEnviar(String animalId) async =>
+      (await registros()).where((p) => p.porEnviar && p.animalId == animalId && p.tipo == 'Clínica').length;
 
   // 13. Lista para la pantalla Sincronización (solo los registros de la cuenta actual).
   Future<List<Pendiente>> registros() async {

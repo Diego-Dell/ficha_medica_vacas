@@ -34,9 +34,9 @@ void main() {
       IndicacionTratamiento(
         medicamento: 'Indicación de prueba',
         dosis: dosis,
-        unidad: 'mL',
+        unidad: 'ml',
         via: 'Prueba',
-        frecuencia: 'Cada 12 horas',
+        frecuencia: '12 h',
         inicio: hoy,
         duracion: '3 días',
         retiro: 'Retiro de ejemplo',
@@ -141,7 +141,7 @@ void main() {
       'dosis': 3,
       'unidad': 'mL',
       'via': 'Prueba',
-      'frecuencia': 'Diaria',
+      'frecuencia': '24 h',
       'inicio': fechaApi(hoy),
       'duracion': '2 días',
       'version': 4,
@@ -204,10 +204,13 @@ void main() {
     final lucera = Animal.fromMap(datos.animales.first);
     await abrir(tester, TratamientoScreen(animal: lucera));
     await tocar(tester, 'Guardar tratamiento');
-    expect(find.text('Campo obligatorio'), findsNWidgets(5));
+    expect(find.text('Campo obligatorio'), findsNWidgets(2));
     expect(find.text('Ingresá una dosis positiva válida'), findsOneWidget);
-    await tester.ensureVisible(find.byType(DropdownButtonFormField<String>));
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    expect(find.text('Elegí la unidad'), findsOneWidget);
+    expect(find.text('Entre 1 y 720'), findsOneWidget);
+    expect(find.text('Entre 1 y 365'), findsOneWidget);
+    await tester.ensureVisible(find.byType(DropdownButtonFormField<String>).first);
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
     await tester.pumpAndSettle();
     await tocar(
       tester,
@@ -217,19 +220,28 @@ void main() {
     for (final (i, texto) in [
       'Nuevo medicamento',
       '1,5',
-      'mL',
       'Vía de prueba',
-      'Cada 12 horas',
-      '5 días',
+      '12',
+      '5',
       'Retiro de prueba',
     ].indexed) {
       await tester.ensureVisible(campos.at(i));
       await tester.enterText(campos.at(i), texto);
     }
+    // Unidad elegida de la lista y total de dosis calculado (5 días cada 12 h).
+    await tester.ensureVisible(find.byType(DropdownButtonFormField<String>).last);
+    await tester.tap(find.byType(DropdownButtonFormField<String>).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ml').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Total de dosis: 10'), findsOneWidget);
     await tocar(tester, 'Guardar tratamiento');
     expect(find.text('Registro guardado'), findsOneWidget);
     expect(datos.tratamientos.last['dosis'], 1.5);
     expect(datos.tratamientos.last['retiro'], 'Retiro de prueba');
+    expect(datos.tratamientos.last['unidad'], 'ml');
+    expect(datos.tratamientos.last['frecuencia'], '12 h');
+    expect(datos.tratamientos.last['duracion'], '5 días');
     expect(tester.takeException(), isNull);
   });
 
@@ -240,7 +252,12 @@ void main() {
       await datos.inicializar();
       final lucera = Animal.fromMap(datos.animales.first);
       await abrir(tester, PrevencionScreen(animal: lucera));
-      await tester.enterText(find.byType(TextFormField), 'Vacuna de prueba');
+      await tester.enterText(find.byType(TextFormField).at(0), 'Vacuna de prueba');
+      await tester.enterText(find.byType(TextFormField).at(1), '2');
+      await tester.tap(find.byType(DropdownButtonFormField<String>).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ml').last);
+      await tester.pumpAndSettle();
       await tocar(tester, 'Programar prevención');
       expect(find.text('Registro guardado'), findsOneWidget);
       expect(datos.prevenciones.last['estado'], 'pendiente');

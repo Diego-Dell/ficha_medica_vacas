@@ -150,7 +150,7 @@ void main() {
 
   testWidgets('Mi granja muestra resumen y equipo, una sola ruta por sección y registra otra granja', (tester) async {
     await abrir(tester, const MiGranjaScreen());
-    expect(find.text('Operaciones de la granja'), findsOneWidget);
+    expect(find.text('Gestionar granja'), findsOneWidget);
     expect(find.text('Equipo'), findsOneWidget);
     expect(find.text('Registrar otra granja'), findsNothing);
     // 1. Ficha, baja y búsqueda viven en la pestaña Ganado; cerrar sesión en Perfil.
