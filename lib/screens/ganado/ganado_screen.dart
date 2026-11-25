@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../logic/fichas.dart';
+import '../../logic/clinica.dart';
+import '../../logic/consulta_ganado.dart';
 import '../../logic/granjas.dart';
 import '../../models/animal.dart';
 import '../../models/miembro.dart';
+import '../../models/registro_clinico.dart';
 import '../../widgets/vetlink.dart';
 import 'editar_ficha_screen.dart';
 import 'ficha_animal_screen.dart';
@@ -22,8 +25,17 @@ class GanadoScreen extends StatefulWidget {
 class _GanadoScreenState extends State<GanadoScreen> {
   final _busqueda = TextEditingController();
   // 3. Incluye las bajas: su ficha sigue consultable.
-  late Future<List<Animal>> _animales = Fichas.instance.deLaGranja(conBajas: true);
+  late Future<({List<Animal> animales, Map<String, ValoracionAnimal> valoraciones})>
+      _datos = _cargar();
   Etapa? _etapa;
+  String? _aptitud, _prenez;
+
+  Future<({List<Animal> animales, Map<String, ValoracionAnimal> valoraciones})>
+      _cargar() async {
+    final animales = await Fichas.instance.deLaGranja(conBajas: true);
+    final eventos = await Clinica.instance.valoracionesDeAnimales(animales);
+    return (animales: animales, valoraciones: valoracionesPorAnimal(animales, eventos));
+  }
 
   @override
   void dispose() {
@@ -33,24 +45,13 @@ class _GanadoScreenState extends State<GanadoScreen> {
 
   void _recargar() {
     setState(() {
-      _animales = Fichas.instance.deLaGranja(conBajas: true);
+      _datos = _cargar();
     });
   }
 
   Future<void> _abrir(Widget pantalla) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
     if (mounted) _recargar();
-  }
-
-  // 4. Filtra por identificación o nombre y por etapa.
-  List<Animal> _filtrar(List<Animal> animales) {
-    final texto = _busqueda.text.trim().toLowerCase();
-    return [
-      for (final a in animales)
-        if ((_etapa == null || a.etapa == _etapa) &&
-            (texto.isEmpty || a.arete.toLowerCase().contains(texto) || (a.nombre ?? '').toLowerCase().contains(texto)))
-          a,
-    ];
   }
 
   Widget _filtro(String texto, Etapa? etapa) {
@@ -67,6 +68,28 @@ class _GanadoScreenState extends State<GanadoScreen> {
         shape: const StadiumBorder(),
         labelStyle: TextStyle(fontWeight: FontWeight.w600, color: activo ? Colors.white : colorTextoSuave),
         onSelected: (_) => setState(() => _etapa = etapa),
+      ),
+    );
+  }
+
+  Widget _filtroEstado(String texto, String? valor, String? elegido,
+      ValueChanged<String?> alElegir) {
+    final activo = elegido == valor;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(texto),
+        selected: activo,
+        showCheckmark: false,
+        selectedColor: colorVerde,
+        backgroundColor: colorSuperficie,
+        side: BorderSide(color: activo ? colorVerde : colorBorde),
+        shape: const StadiumBorder(),
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: activo ? Colors.white : colorTextoSuave,
+        ),
+        onSelected: (_) => setState(() => alElegir(valor)),
       ),
     );
   }
@@ -105,8 +128,31 @@ class _GanadoScreenState extends State<GanadoScreen> {
           child: Row(children: [_filtro('Todas', null), for (final e in Etapa.values) _filtro(e.etiqueta, e)]),
         ),
         const SizedBox(height: 12),
-        FutureBuilder<List<Animal>>(
-          future: _animales,
+        Text('Aptitud', style: tema.labelMedium),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            _filtroEstado('Todas', null, _aptitud, (v) => _aptitud = v),
+            _filtroEstado('Sin evaluar', '', _aptitud, (v) => _aptitud = v),
+            for (final e in aptitudes.entries)
+              if (e.key.isNotEmpty)
+                _filtroEstado(e.value, e.key, _aptitud, (v) => _aptitud = v),
+            _filtroEstado('En observación', 'EnObservacion', _aptitud, (v) => _aptitud = v),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        Text('Preñez', style: tema.labelMedium),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            _filtroEstado('Todas', null, _prenez, (v) => _prenez = v),
+            for (final e in estadosPrenez.entries)
+              _filtroEstado(e.value, e.key, _prenez, (v) => _prenez = v),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<({List<Animal> animales, Map<String, ValoracionAnimal> valoraciones})>(
+          future: _datos,
           builder: (context, estado) {
             if (estado.hasError) {
               return TextButton(
@@ -115,21 +161,30 @@ class _GanadoScreenState extends State<GanadoScreen> {
                 child: const Text('No se pudieron cargar los animales. Reintentar'),
               );
             }
-            final animales = estado.data;
-            if (animales == null) {
+            final datos = estado.data;
+            if (datos == null) {
               return const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()));
             }
+            final animales = datos.animales;
             if (animales.isEmpty) return const _SinAnimales();
-            final visibles = _filtrar(animales);
-            final bajas = animales.where((a) => a.deBaja).length;
+            final visibles = filtrarGanado(
+              animales, datos.valoraciones,
+              busqueda: _busqueda.text, etapa: _etapa,
+              aptitud: _aptitud, prenez: _prenez,
+            );
+            final bajas = visibles.where((a) => a.deBaja).length;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('${animales.length - bajas} animales${bajas > 0 ? ' · $bajas de baja' : ''}', style: tema.bodySmall),
+                Text('${visibles.length} coincidencias · ${visibles.length - bajas} activas · $bajas de baja', style: tema.bodySmall),
                 const SizedBox(height: 12),
                 if (visibles.isEmpty) Text('Sin resultados.', style: tema.bodySmall),
                 for (final a in visibles)
-                  _TarjetaAnimal(animal: a, alPresionar: () => _abrir(FichaAnimalScreen(animal: a))),
+                  _TarjetaAnimal(
+                    animal: a,
+                    valoracion: datos.valoraciones[a.id],
+                    alPresionar: () => _abrir(FichaAnimalScreen(animal: a)),
+                  ),
               ],
             );
           },
@@ -160,9 +215,10 @@ class _SinAnimales extends StatelessWidget {
 }
 
 class _TarjetaAnimal extends StatelessWidget {
-  const _TarjetaAnimal({required this.animal, required this.alPresionar});
+  const _TarjetaAnimal({required this.animal, required this.valoracion, required this.alPresionar});
 
   final Animal animal;
+  final ValoracionAnimal? valoracion;
   final VoidCallback alPresionar;
 
   @override
@@ -186,6 +242,8 @@ class _TarjetaAnimal extends StatelessWidget {
                   Text(animal.titulo, style: tema.titleMedium?.copyWith(
                       fontSize: 15, color: animal.deBaja ? colorTextoSuave : colorVerdeOscuro)),
                   Text(datos.join(' · '), style: tema.bodySmall),
+                  Text('Aptitud: ${valoracion?.aptitudTexto ?? 'Sin evaluar'} · Preñez: ${valoracion?.prenezTexto ?? 'No determinada'}',
+                      style: tema.bodySmall),
                 ],
               ),
             ),

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/registro_clinico.dart';
+import '../models/animal.dart';
 
 // 1. Una sola entrada para Clínica y Reproducción, siguiendo Fichas.
 class Clinica {
@@ -63,6 +64,18 @@ class Clinica {
 
   Future<List<RegistroClinico>> atencionesDelAnimal(String animalId) =>
       antecedentes(animalId, reproductivos: false);
+
+  /// Una consulta para todas las valoraciones de la granja seleccionada.
+  Future<List<RegistroClinico>> valoracionesDeAnimales(List<Animal> animales) async {
+    if (animales.isEmpty) return [];
+    final ids = animales.map((a) => a.id).toSet();
+    final datos = await _pedir('GET', '/eventosreproductivos') as List<dynamic>;
+    return datos
+        .map((d) => RegistroClinico.desdeApi(
+              d as Map<String, dynamic>, reproductivo: true))
+        .where((r) => ids.contains(r.animalId) && !r.anulado)
+        .toList();
+  }
 
   Future<String?> registrar({required bool reproductivo, required Map<String, dynamic> datos}) async {
     try {

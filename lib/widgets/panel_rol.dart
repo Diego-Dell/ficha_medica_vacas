@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/sesion.dart';
 import '../screens/dueno_granja/registrar_otra_granja_screen.dart';
 import '../screens/ganado/ganado_screen.dart';
+import '../screens/ganado/avisos_screen.dart';
 import '../screens/perfil_screen.dart';
 import 'menu_granjas.dart';
 import 'vetlink.dart';
@@ -111,7 +112,7 @@ Future<void> cerrarSesion(BuildContext context) async {
   if (context.mounted) Navigator.popUntil(context, (ruta) => ruta.isFirst);
 }
 
-/// 6. Inicio de cada rol con la barra inferior de íconos: Inicio, Ganado y Perfil.
+/// Inicio de cada rol con acceso compartido a Ganado y Avisos.
 class PanelRol extends StatefulWidget {
   const PanelRol({
     super.key,
@@ -146,6 +147,7 @@ class _PanelRolState extends State<PanelRol> {
   List<(String, String)> get _pestanas => [
     ('Inicio', 'inicio'),
     if (widget.mostrarGanado) ('Ganado', 'ganado'),
+    if (widget.mostrarGanado) ('Avisos', 'avisos'),
     ('Perfil', 'perfil'),
   ];
 
@@ -241,6 +243,7 @@ class _PanelRolState extends State<PanelRol> {
       endDrawer: widget.menuLateral,
       body: switch (actual) {
         'Ganado' => const GanadoScreen(enPestana: true),
+        'Avisos' => const AvisosScreen(enPestana: true),
         'Perfil' => PerfilScreen(
           rol: widget.rol,
           granja: widget.granja,

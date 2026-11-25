@@ -58,6 +58,18 @@ class Tratamientos {
         .toList();
   }
 
+  /// Lee una vez la API y conserva solo las prevenciones de la granja activa.
+  Future<List<Prevencion>> prevencionesDeAnimales(List<Animal> animales) async {
+    if (animales.isEmpty) return [];
+    final ids = animales.map((a) => a.id).toSet();
+    final respuesta = await _pedir('GET', '/api/prevenciones');
+    return (respuesta as List)
+        .cast<Map>()
+        .map((fila) => Prevencion.fromMap(Map<String, dynamic>.from(fila)))
+        .where((p) => ids.contains(p.animalId))
+        .toList();
+  }
+
   String? _permiso(Animal animal) => animal.deBaja
       ? 'La ficha está dada de baja y no admite nuevos registros'
       : !Granjas.instance.sesionAdministradora && Granjas.instance.rol != RolMiembro.veterinario

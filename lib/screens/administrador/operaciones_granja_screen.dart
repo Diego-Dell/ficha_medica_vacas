@@ -8,6 +8,7 @@ import '../../widgets/pantalla.dart';
 import '../../widgets/vetlink.dart';
 import '../dueno_granja/datos_granja_screen.dart';
 import '../ganado/ganado_screen.dart';
+import '../ganado/avisos_screen.dart';
 import '../veterinario/registro_clinico_screen.dart';
 import '../veterinario/tratamiento_screen.dart';
 import '../veterinario/prevencion_screen.dart';
@@ -114,10 +115,10 @@ class _OperacionesGranjaScreenState extends State<OperacionesGranjaScreen> {
                     icono: 'ficha',
                     alPresionar: () => _abrir(const GanadoScreen()),
                   ),
-                  const Acceso(
+                  Acceso(
                     titulo: 'Avisos',
                     icono: 'avisos',
-                    alPresionar: null,
+                    alPresionar: () => _abrir(const AvisosScreen()),
                   ),
                   const Acceso(
                     titulo: 'Reportes',
@@ -128,7 +129,7 @@ class _OperacionesGranjaScreenState extends State<OperacionesGranjaScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Avisos y reportes se habilitarán al integrar RF-06 y RF-08 del equipo.',
+                'Los reportes se habilitarán al integrar RF-08 del equipo.',
                 style: TextStyle(color: colorTextoSuave, fontSize: 12),
               ),
             ],
