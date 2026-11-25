@@ -105,7 +105,7 @@ class _GanadoScreenState extends State<GanadoScreen> {
         granja: Granjas.instance.actual.nombre,
         alVolver: widget.enPestana ? null : () => Navigator.pop(context),
       ),
-      titulo: 'Ganado',
+      titulo: 'Gestionar ganado',
       botonFlotante: puedeCrear
           ? FloatingActionButton.extended(
               onPressed: () => _abrir(const EditarFichaScreen()),

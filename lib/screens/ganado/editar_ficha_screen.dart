@@ -118,13 +118,14 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
                   controller: _arete,
                   decoration: decoracionCampo(),
                   textCapitalization: TextCapitalization.characters,
-                  validator: requerido,
+                  validator: textoEntre(1, 30),
                 ),
               ),
               CampoEtiquetado(
                 etiqueta: 'Nombre',
                 child: TextFormField(
                   controller: _nombre,
+                  validator: textoOpcional(60),
                   decoration: decoracionCampo(),
                   textCapitalization: TextCapitalization.words,
                 ),
@@ -133,6 +134,7 @@ class _EditarFichaScreenState extends State<EditarFichaScreen> {
                 etiqueta: 'Raza',
                 child: TextFormField(
                   controller: _raza,
+                  validator: textoOpcional(60),
                   decoration: decoracionCampo(),
                   textCapitalization: TextCapitalization.words,
                 ),

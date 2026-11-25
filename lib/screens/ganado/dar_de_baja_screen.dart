@@ -111,7 +111,7 @@ class _DarDeBajaScreenState extends State<DarDeBajaScreen> {
                   controller: _motivo,
                   decoration: decoracionCampo(pista: 'Venta del animal'),
                   textCapitalization: TextCapitalization.sentences,
-                  validator: requerido,
+                  validator: textoEntre(3, 500),
                 ),
               ),
             ],

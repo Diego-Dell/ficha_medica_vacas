@@ -57,6 +57,22 @@ ThemeData temaVetLink() {
 /// 2. Valida que un campo obligatorio tenga texto.
 String? requerido(String? valor) => (valor == null || valor.trim().isEmpty) ? 'Campo obligatorio' : null;
 
+// Validaciones de entrada comunes a todos los módulos (casos de uso).
+final _correo = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
+String? correoValido(String? valor) =>
+    requerido(valor) ?? (_correo.hasMatch(valor!.trim()) ? null : 'Ingresá un correo válido');
+
+String? Function(String?) textoEntre(int minimo, int maximo) => (valor) {
+  final texto = valor?.trim() ?? '';
+  if (texto.isEmpty) return 'Campo obligatorio';
+  if (texto.length < minimo) return 'Escribí al menos $minimo caracteres';
+  if (texto.length > maximo) return 'Máximo $maximo caracteres';
+  return null;
+};
+
+String? Function(String?) textoOpcional(int maximo) =>
+    (valor) => (valor?.trim().length ?? 0) > maximo ? 'Máximo $maximo caracteres' : null;
+
 /// 3. Muestra un mensaje y reemplaza el anterior.
 void avisar(BuildContext context, String mensaje) {
   ScaffoldMessenger.of(context)

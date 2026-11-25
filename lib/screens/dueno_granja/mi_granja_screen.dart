@@ -102,7 +102,7 @@ class _Resumen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Operaciones de la granja',
+            'Gestionar granja',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorVerdeSuave),
           ),
           const SizedBox(height: 12),

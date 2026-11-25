@@ -70,7 +70,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
 
     return PantallaVetLink(
       encabezado: EncabezadoVetLink(granja: granja, alVolver: volver),
-      titulo: 'Miembros',
+      titulo: 'Gestionar miembros de equipo',
       subtitulo: 'Equipo vinculado a $granja.',
       children: [
         FutureBuilder<_Equipo>(

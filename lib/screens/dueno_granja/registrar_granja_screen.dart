@@ -75,7 +75,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
   Widget build(BuildContext context) {
     final seccion = Theme.of(context).textTheme.labelSmall?.copyWith(color: colorTextoSuave);
     return Pantalla(
-      titulo: 'Registrar mi granja',
+      titulo: 'Registrar granja y cuenta',
       subtitulo: 'Creá tu cuenta y registrá tu granja.',
       children: [
         Form(
@@ -93,7 +93,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
                   controller: _dueno,
                   decoration: decoracionCampo(icono: 'perfil'),
                   textCapitalization: TextCapitalization.words,
-                  validator: requerido,
+                  validator: textoEntre(3, 120),
                 ),
               ),
               CampoEtiquetado(
@@ -103,7 +103,7 @@ class _RegistrarGranjaScreenState extends State<RegistrarGranjaScreen> {
                   decoration: decoracionCampo(icono: 'correo'),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
-                  validator: requerido,
+                  validator: correoValido,
                 ),
               ),
               CampoEtiquetado(

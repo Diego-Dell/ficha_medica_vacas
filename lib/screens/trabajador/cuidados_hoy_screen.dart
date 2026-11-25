@@ -49,7 +49,7 @@ class _CuidadosHoyScreenState extends State<CuidadosHoyScreen> {
     granja: widget.granja,
     alCerrarSesion: widget.alCerrarSesion,
     children: [
-      const TituloGrupo('Cuidados de hoy'),
+      const TituloGrupo('Gestión de cuidados diarios'),
       FutureBuilder<({List<Animal> animales, List<Indicacion> indicaciones})>(
         future: _pendientes,
         builder: (context, estado) {

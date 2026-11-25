@@ -53,7 +53,7 @@ class CamposGranja extends StatelessWidget {
             controller: nombre,
             decoration: decoracionCampo(pista: compacto ? null : 'Los Pinos', icono: 'granja'),
             textCapitalization: TextCapitalization.words,
-            validator: requerido,
+            validator: textoEntre(2, 120),
           ),
         ),
         CampoEtiquetado(
@@ -71,7 +71,7 @@ class CamposGranja extends StatelessWidget {
             controller: runsa,
             decoration: decoracionCampo(pista: compacto ? null : 'SC-02418', icono: 'documento'),
             textCapitalization: TextCapitalization.characters,
-            validator: requerido,
+            validator: textoEntre(3, 30),
           ),
         ),
         CampoEtiquetado(

@@ -63,19 +63,19 @@ class _OperacionesGranjaScreenState extends State<OperacionesGranjaScreen> {
               Accesos(
                 children: [
                   Acceso(
-                    titulo: 'Ganado',
+                    titulo: 'Gestionar ganado',
                     icono: 'ganado',
                     alPresionar: () => _abrir(const GanadoScreen()),
                   ),
                   Acceso(
-                    titulo: 'Miembros',
+                    titulo: 'Gestionar miembros de equipo',
                     icono: 'miembros',
                     alPresionar: () => _abrir(
                       MiembrosAdministrativosScreen(granja: widget.granja),
                     ),
                   ),
                   Acceso(
-                    titulo: 'Datos de granja',
+                    titulo: 'Gestionar granja',
                     icono: 'granja',
                     alPresionar: () => _abrir(const DatosGranjaScreen()),
                   ),
@@ -121,7 +121,7 @@ class _OperacionesGranjaScreenState extends State<OperacionesGranjaScreen> {
                     alPresionar: () => _abrir(const AvisosScreen()),
                   ),
                   const Acceso(
-                    titulo: 'Reportes',
+                    titulo: 'Generar reportes',
                     icono: 'reportes',
                     alPresionar: null,
                   ),

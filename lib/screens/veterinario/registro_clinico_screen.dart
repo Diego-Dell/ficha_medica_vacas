@@ -163,7 +163,7 @@ class _RegistroClinicoScreenState extends State<RegistroClinicoScreen> {
       minLines: 2,
       maxLines: 5,
       decoration: decoracionCampo(),
-      validator: obligatorio ? requerido : null,
+      validator: obligatorio ? textoEntre(3, 1000) : textoOpcional(1000),
     ),
   );
 

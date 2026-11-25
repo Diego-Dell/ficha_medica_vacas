@@ -90,7 +90,7 @@ class _AdministracionScreenState extends State<AdministracionScreen> {
     titulo: [
       'Hola, ${Sesion.instance.nombre.split(RegExp(r'[\s@]')).first}',
       'Granjas',
-      'Cuentas y accesos',
+      'Gestionar cuentas y accesos',
     ][_pestana],
     granja: 'Administrador del sistema',
     volver: false,

@@ -21,7 +21,7 @@ class SeguimientoVeterinarioScreen extends StatelessWidget {
     granja: granja,
     alCerrarSesion: alCerrarSesion,
     children: [
-      const TituloGrupo('Registrar'),
+      const TituloGrupo('Gestionar seguimiento veterinario'),
       // 2. Se activan con los módulos de Clínica y Tratamientos.
       Accesos(children: [
         Acceso(titulo: 'Clínica', icono: 'clinica', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClinicoScreen()))),

@@ -74,7 +74,7 @@ class _InvitarScreenState extends State<InvitarScreen> {
 
     return PantallaVetLink(
       encabezado: EncabezadoVetLink(granja: granja, alVolver: volver),
-      titulo: 'Invitar al equipo',
+      titulo: 'Invitar miembro',
       subtitulo: 'Elegí el correo y el rol de la persona.',
       children: [
         Form(

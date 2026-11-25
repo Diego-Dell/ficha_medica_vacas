@@ -285,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 keyboardType: TextInputType.emailAddress,
                                 textInputAction: TextInputAction.next,
                                 autocorrect: false,
-                                validator: requerido,
+                                validator: correoValido,
                               ),
                             ),
                             CampoEtiquetado(
@@ -317,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         alPresionar: _enviando ? null : _ingresar,
                       ),
                       BotonSecundario(
-                        texto: 'Registrar mi granja',
+                        texto: 'Registrar granja y cuenta',
                         alPresionar: () =>
                             Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistrarGranjaScreen())),
                       ),

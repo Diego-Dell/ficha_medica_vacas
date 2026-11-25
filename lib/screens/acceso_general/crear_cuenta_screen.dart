@@ -64,7 +64,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                   controller: _nombre,
                   decoration: decoracionCampo(pista: 'Sofía Rojas', icono: 'perfil'),
                   textCapitalization: TextCapitalization.words,
-                  validator: requerido,
+                  validator: textoEntre(3, 120),
                 ),
               ),
               CampoEtiquetado(
@@ -74,7 +74,7 @@ class _CrearCuentaScreenState extends State<CrearCuentaScreen> {
                   decoration: decoracionCampo(pista: 'sofia@ejemplo.com', icono: 'correo'),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
-                  validator: requerido,
+                  validator: correoValido,
                 ),
               ),
               CampoEtiquetado(
