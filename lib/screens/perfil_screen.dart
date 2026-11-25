@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../logic/sesion.dart';
+import '../logic/sincronizacion.dart';
+import 'sincronizacion_screen.dart';
 import '../widgets/vetlink.dart';
 
 // 1. Pestaña Perfil: datos de la cuenta, cambiar contraseña y cerrar sesión.
@@ -87,6 +89,23 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 relleno: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Column(
                   children: [
+                    // 5. RF-07: registros guardados sin conexión y su estado.
+                    ValueListenableBuilder<int>(
+                      valueListenable: Sincronizacion.instance.cambios,
+                      builder: (context, _, _) => FutureBuilder<int>(
+                        future: Sincronizacion.instance.porEnviar(),
+                        builder: (context, faltan) => _Fila(
+                          icono: 'sincronizado',
+                          titulo: 'Sincronización',
+                          pendientes: faltan.data ?? 0,
+                          alPresionar: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(builder: (_) => const SincronizacionScreen()),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1, color: colorBorde),
                     _Fila(
                       icono: 'candado',
                       titulo: _enviando ? 'Enviando correo...' : 'Cambiar contraseña',
@@ -112,11 +131,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
 // 3. Fila de la lista del perfil.
 class _Fila extends StatelessWidget {
-  const _Fila({required this.icono, required this.titulo, required this.alPresionar, this.peligro = false});
+  const _Fila({required this.icono, required this.titulo, required this.alPresionar, this.peligro = false, this.pendientes = 0});
 
   final String icono, titulo;
   final VoidCallback alPresionar;
   final bool peligro;
+  final int pendientes;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -142,6 +162,10 @@ class _Fila extends StatelessWidget {
               ),
             ),
           ),
+          if (pendientes > 0) ...[
+            ChipEstado('$pendientes', tipo: TipoChip.advertencia),
+            const SizedBox(width: 8),
+          ],
           if (!peligro) const Icono('flecha', color: colorTextoSuave, tam: 18),
         ],
       ),
