@@ -1,0 +1,36 @@
+Tratamientos y prevencion - Integrante 3
+Validacion final: 22/11/2026
+
+Conexión HTTP local (API ASP.NET en 127.0.0.1:5080): correcta.
+- Crear tratamiento mediante POST /api/tratamientos: correcto.
+- Reemplazar cierra la versión previa y crea otra por la API: correcto.
+- Programar y completar un control preventivo por la API: correcto.
+
+Entorno: Flutter 3.47.9 / Dart 3.13.7
+
+flutter analyze --no-pub
+Resultado: No issues found.
+
+flutter test --no-pub
+Resultado: 10 pruebas correctas.
+1. Crear tratamiento con retiro, fecha sin hora y autor no editable.
+2. Rechazar trabajador, animal de baja, atencion de otro animal y dosis invalida.
+3. Reemplazo con referencia, version y cierre; informar conflictos.
+4. Formulario de tratamiento: validar y guardar con la atencion del animal.
+5. Prevencion pendiente y completar control conservando el registro.
+6. Consulta del trabajador sin acciones de prescripcion.
+7. Cambio de rol de veterinario a trabajador y consulta de la indicacion.
+8. Modificar y finalizar conservando ambas indicaciones y sus dosis.
+9. Inicio de 360 pixeles sin otros modulos ni desbordamientos.
+10. Inicio de 390 pixeles sin otros modulos ni desbordamientos.
+
+npm test (supabase/tests)
+Resultado: 26 comprobaciones PostgreSQL correctas, con datos solo en memoria.
+Incluye permisos, mismo animal, indicaciones cerradas, antecedentes inmutables,
+retiro, control pendiente/realizado, conflictos de version, aislamiento de datos,
+reversion del cierre cuando falla la nueva indicacion y compatibilidad con
+el registro de aplicaciones del backend existente.
+
+Los datos de demostracion son simulados y se reinician al abrir la aplicacion.
+No se modifico la base real ni se aplicaron migraciones en ella.
+Este informe corresponde exclusivamente a la copia reducida del integrante 3.
