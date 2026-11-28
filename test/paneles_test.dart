@@ -51,10 +51,14 @@ void main() {
             rol == RolMiembro.trabajador;
         expect(tarjeta.alPresionar, disponible ? isNotNull : isNull, reason: tarjeta.titulo);
       }
-      // 2. Una sola forma de llegar a cada sección: la barra inferior.
-      for (final pestana in ['Inicio', 'Ganado', 'Perfil']) {
+      // 2. Barra inferior del diseño: Reportes visible solo para dueño y veterinario.
+      for (final pestana in ['Inicio', 'Ganado', 'Avisos', 'Perfil']) {
         expect(find.descendant(of: find.byType(NavigationBar), matching: find.text(pestana)), findsOneWidget);
       }
+      expect(
+        find.descendant(of: find.byType(NavigationBar), matching: find.text('Reportes')),
+        rol == RolMiembro.veterinario ? findsOneWidget : findsNothing,
+      );
       await tester.tap(find.text('Perfil'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cerrar sesión'));

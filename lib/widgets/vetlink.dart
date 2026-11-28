@@ -427,28 +427,29 @@ class ChipEstado extends StatelessWidget {
   }
 }
 
-/// 19. Mensaje en línea con ícono: información o advertencia.
+/// 19. Mensaje en línea con ícono: información, advertencia o peligro.
 class AvisoVetLink extends StatelessWidget {
-  const AvisoVetLink({super.key, required this.titulo, this.texto, this.advertencia = false});
+  const AvisoVetLink({super.key, required this.titulo, this.texto, this.advertencia = false, this.peligro = false});
 
   final String titulo;
   final String? texto;
-  final bool advertencia;
+  final bool advertencia, peligro;
 
   @override
   Widget build(BuildContext context) {
-    final tinta = advertencia ? colorAmbarTexto : colorVerde;
+    final tinta = peligro ? colorRojo : (advertencia ? colorAmbarTexto : colorVerde);
+    final fondo = peligro ? colorRojoFondo : (advertencia ? colorAmbarFondo : colorVerdeSuave);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: advertencia ? colorAmbarFondo : colorVerdeSuave,
+        color: fondo,
         borderRadius: BorderRadius.circular(radioCampo),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icono(advertencia ? 'alerta' : 'info', color: tinta, tam: 20),
+          Icono((peligro || advertencia) ? 'alerta' : 'info', color: tinta, tam: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

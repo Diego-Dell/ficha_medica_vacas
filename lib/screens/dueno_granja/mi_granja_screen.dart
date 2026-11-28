@@ -54,7 +54,7 @@ class _MiGranjaScreenState extends State<MiGranjaScreen> {
               alPresionar: () => _abrir(const MiembrosScreen()),
             ),
           ),
-        // 4. Única entrada para actualizar el RUNSA.
+        // 4. Única entrada para actualizar el RUNSA; Reportes está en la barra inferior.
         if (datos.rol == RolMiembro.dueno)
           OpcionPanel(
             titulo: 'Datos de la granja',

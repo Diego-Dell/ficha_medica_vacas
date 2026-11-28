@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="VetLink" type="FlutterRunConfigurationType" factoryName="Flutter">
     <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />
-    <option name="additionalArgs" value="--dart-define-from-file=config.json" />
+    <option name="additionalArgs" value="--dart-define-from-file=config.json --android-skip-build-dependency-validation" />
     <method v="2" />
   </configuration>
 </component>

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../logic/reportes.dart';
 import '../logic/sesion.dart';
 import '../screens/dueno_granja/registrar_otra_granja_screen.dart';
 import '../screens/ganado/ganado_screen.dart';
 import '../screens/ganado/avisos_screen.dart';
 import '../screens/perfil_screen.dart';
+import '../screens/reportes_screen.dart';
 import 'menu_granjas.dart';
 import 'vetlink.dart';
 
@@ -143,11 +145,17 @@ class PanelRol extends StatefulWidget {
 class _PanelRolState extends State<PanelRol> {
   int _pestana = 0;
 
-  // 1. Pestañas disponibles según el rol.
+  // 1. Pestañas disponibles según el rol (Reportes solo para dueño y veterinario).
+  bool get _mostrarReportes =>
+      widget.mostrarGanado &&
+      widget.rol != 'Trabajador' &&
+      Reportes.instance.puedeGenerar;
+
   List<(String, String)> get _pestanas => [
     ('Inicio', 'inicio'),
     if (widget.mostrarGanado) ('Ganado', 'ganado'),
     if (widget.mostrarGanado) ('Avisos', 'avisos'),
+    if (_mostrarReportes) ('Reportes', 'reportes'),
     ('Perfil', 'perfil'),
   ];
 
@@ -244,6 +252,10 @@ class _PanelRolState extends State<PanelRol> {
       body: switch (actual) {
         'Ganado' => const GanadoScreen(enPestana: true),
         'Avisos' => const AvisosScreen(enPestana: true),
+        'Reportes' => ReportesScreen(
+          enPestana: true,
+          alVolver: () => setState(() => _pestana = 0),
+        ),
         'Perfil' => PerfilScreen(
           rol: widget.rol,
           granja: widget.granja,
@@ -251,21 +263,38 @@ class _PanelRolState extends State<PanelRol> {
         ),
         _ => Builder(builder: _inicio),
       },
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: colorSuperficie,
-        indicatorColor: colorVerdeSuave,
-        surfaceTintColor: Colors.transparent,
-        height: 72,
-        selectedIndex: _pestana.clamp(0, pestanas.length - 1),
-        onDestinationSelected: (i) => setState(() => _pestana = i),
-        destinations: [
-          for (final (titulo, icono) in pestanas)
-            NavigationDestination(
-              icon: Icono(icono, color: colorTextoSuave),
-              selectedIcon: Icono(icono, color: colorVerde),
-              label: titulo,
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: colorBorde, width: 0.5)),
+        ),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            labelTextStyle: WidgetStateProperty.resolveWith(
+              (estados) => TextStyle(
+                fontFamily: fuenteTexto,
+                fontSize: 11.5,
+                fontWeight: estados.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w500,
+                color: estados.contains(WidgetState.selected) ? colorVerdeOscuro : colorTextoSuave,
+              ),
             ),
-        ],
+          ),
+          child: NavigationBar(
+            backgroundColor: colorSuperficie,
+            indicatorColor: colorVerdeSuave,
+            surfaceTintColor: Colors.transparent,
+            height: 72,
+            selectedIndex: _pestana.clamp(0, pestanas.length - 1),
+            onDestinationSelected: (i) => setState(() => _pestana = i),
+            destinations: [
+              for (final (titulo, icono) in pestanas)
+                NavigationDestination(
+                  icon: Icono(icono, color: colorTextoSuave, tam: 22),
+                  selectedIcon: Icono(icono, color: colorVerde, tam: 22),
+                  label: titulo,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -5,7 +5,7 @@ import 'registro_clinico_screen.dart';
 import 'tratamiento_screen.dart';
 import 'prevencion_screen.dart';
 
-// 1. Inicio del veterinario; Consulta está en la pestaña Ganado.
+// 1. Inicio del veterinario; Consulta y Reportes viven en la barra inferior.
 class SeguimientoVeterinarioScreen extends StatelessWidget {
   const SeguimientoVeterinarioScreen({
     super.key,
@@ -22,7 +22,7 @@ class SeguimientoVeterinarioScreen extends StatelessWidget {
     alCerrarSesion: alCerrarSesion,
     children: [
       const TituloGrupo('Gestionar seguimiento veterinario'),
-      // 2. Se activan con los módulos de Clínica y Tratamientos.
+      // 2. Módulos clínicos y preventivos en grilla 2x2 como en el diseño.
       Accesos(children: [
         Acceso(titulo: 'Clínica', icono: 'clinica', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClinicoScreen()))),
         Acceso(titulo: 'Reproducción', icono: 'reproduccion', alPresionar: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClinicoScreen(reproductivo: true)))),
